@@ -11,7 +11,6 @@ load_dotenv()
 class AIService:
 
     def __init__(self):
-
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
@@ -30,7 +29,6 @@ class AIService:
         business,
         approvals
     ):
-
         prompt = self.build_prompt(
             business,
             approvals
@@ -45,53 +43,6 @@ class AIService:
             response.text
         )
 
-        def answer_question(
-        self,
-        business,
-        question,
-        approvals,
-        regulatory_evidence
-    ):
-
-            prompt = f"""
-You are BizClear, an AI regulatory compliance assistant.
-
-Answer the user's compliance question using the
-business information, approval information, and
-regulatory evidence provided below.
-
-BUSINESS:
-{business}
-
-APPROVALS:
-{approvals}
-
-REGULATORY EVIDENCE:
-{regulatory_evidence}
-
-USER QUESTION:
-{question}
-
-IMPORTANT RULES:
-
-1. Use the supplied regulatory evidence as the primary source.
-2. Do not invent laws, authorities, fees, deadlines, or requirements.
-3. If the evidence does not contain enough information,
-   clearly say that the information is insufficient.
-4. Give a practical answer that an entrepreneur can understand.
-5. Distinguish between confirmed information and uncertainty.
-6. Do not claim that an approval is mandatory unless the
-   supplied information supports that conclusion.
-
-Return only the answer text.
-"""
-
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt
-        )
-
-            return response.text
     def answer_question(
         self,
         business,
@@ -99,7 +50,6 @@ Return only the answer text.
         approvals,
         regulatory_evidence
     ):
-
         prompt = f"""
 You are BizClear, an AI regulatory compliance assistant.
 
@@ -144,11 +94,9 @@ Return only the answer text.
         business,
         approvals
     ):
-
         approval_context = []
 
         for approval in approvals:
-
             evidence = approval.get(
                 "regulatory_evidence",
                 []
@@ -157,7 +105,6 @@ Return only the answer text.
             evidence_text = []
 
             for item in evidence:
-
                 evidence_text.append(
                     f"""
 SOURCE: {item.get("source")}
@@ -240,38 +187,30 @@ Use this structure:
     ]
 }}
 """
-
         return prompt
 
     def parse_response(
         self,
         response_text
     ):
-
         cleaned = response_text.strip()
 
         if cleaned.startswith("```"):
-
             cleaned = cleaned.replace(
                 "```json",
                 ""
             )
-
             cleaned = cleaned.replace(
                 "```",
                 ""
             )
-
             cleaned = cleaned.strip()
 
         try:
-
             return json.loads(
                 cleaned
             )
-
         except json.JSONDecodeError:
-
             return {
                 "error": "AI returned invalid JSON",
                 "raw_response": response_text
