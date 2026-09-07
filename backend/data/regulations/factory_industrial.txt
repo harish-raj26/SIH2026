@@ -1,0 +1,41 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Factory and Industrial Establishment Requirements
+
+Industrial establishments may require permissions or registrations before establishing or operating manufacturing activities.
+
+Requirements can depend on:
+
+- Nature of manufacturing activity
+- Number of workers
+- Use of machinery
+- Power consumption
+- Factory premises
+- Production capacity
+- Hazardous materials
+- Location
+- Applicable state requirements
+
+Potential regulatory requirements may include:
+
+Factory Licence.
+
+Industrial establishment registration.
+
+Factory plan approval.
+
+Permission for installation or operation of specified machinery.
+
+Permission relating to hazardous manufacturing activities where applicable.
+
+Manufacturing establishments should determine the applicable requirements with the competent labour, factory, industrial, or local authority.
+
+Potential approval types:
+- Factory Licence
+- Factory Plan Approval
+- Industrial Establishment Registration
+- Machinery Permission
+- Hazardous Process Permission
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

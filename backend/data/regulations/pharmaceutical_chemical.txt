@@ -1,0 +1,45 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Pharmaceutical and Chemical Industry Requirements
+
+Businesses manufacturing, processing, storing, importing, or distributing pharmaceutical products, chemicals, hazardous substances, or controlled materials may require additional regulatory permissions.
+
+Requirements may depend on:
+
+- Type of product
+- Chemical classification
+- Hazard classification
+- Quantity stored
+- Manufacturing process
+- Storage facility
+- Production capacity
+- Worker exposure
+- Environmental impact
+- Location
+
+Potential regulatory requirements may include:
+
+Drug manufacturing licence.
+
+Chemical handling authorization.
+
+Hazardous substance storage permission.
+
+Chemical manufacturing approval.
+
+Pharmaceutical product registration.
+
+Controlled substance authorization where applicable.
+
+Potential approval types:
+- Drug Manufacturing Licence
+- Chemical Handling Authorization
+- Hazardous Substance Storage Permission
+- Chemical Manufacturing Approval
+- Pharmaceutical Product Registration
+- Controlled Substance Authorization
+
+The business should verify applicable requirements with the competent pharmaceutical, chemical, environmental, or safety authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

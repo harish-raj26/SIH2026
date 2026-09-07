@@ -1,0 +1,42 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Water and Waste Management Requirements
+
+Businesses using substantial quantities of water or generating wastewater, solid waste, hazardous waste, or other waste may be subject to additional requirements.
+
+Requirements may depend on:
+
+- Water consumption
+- Wastewater generation
+- Type of waste
+- Hazardous materials
+- Production process
+- Industry
+- Location
+
+Potential regulatory requirements may include:
+
+Water connection permission.
+
+Groundwater extraction permission where applicable.
+
+Wastewater discharge permission.
+
+Solid waste authorization.
+
+Hazardous waste authorization.
+
+Waste management registration.
+
+Potential approval types:
+- Water Use Permission
+- Groundwater Permission
+- Wastewater Discharge Approval
+- Solid Waste Authorization
+- Hazardous Waste Authorization
+- Waste Management Registration
+
+The business should verify applicable requirements with the relevant water, environmental, municipal, or local authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

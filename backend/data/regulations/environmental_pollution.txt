@@ -1,0 +1,48 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Environmental and Pollution Control Requirements
+
+Businesses that may generate air emissions, wastewater, hazardous waste, solid waste, noise, or other environmental impacts may require environmental permissions.
+
+Requirements may depend on:
+
+- Industry type
+- Pollution category
+- Production capacity
+- Air emissions
+- Water consumption
+- Wastewater generation
+- Hazardous waste
+- Fuel usage
+- Chemicals used
+- Location
+
+Potential regulatory requirements may include:
+
+Consent to Establish.
+
+Consent to Operate.
+
+Environmental clearance where applicable.
+
+Hazardous waste authorization where applicable.
+
+Waste management authorization where applicable.
+
+Air emission related permissions where applicable.
+
+Water discharge related permissions where applicable.
+
+Potential approval types:
+- Consent to Establish
+- Consent to Operate
+- Environmental Clearance
+- Hazardous Waste Authorization
+- Waste Management Authorization
+- Air Pollution Permission
+- Water Pollution Permission
+
+The applicable requirement should be verified with the relevant environmental authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

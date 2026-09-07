@@ -1,0 +1,43 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Land Use and Building Requirements
+
+Businesses establishing premises may require permissions relating to land use, construction, building plans, occupancy, or changes to an existing property.
+
+Requirements may depend on:
+
+- Location
+- Land-use classification
+- Building area
+- Construction type
+- Building height
+- Intended activity
+- Zoning
+- Local authority rules
+
+Potential regulatory requirements may include:
+
+Land-use approval.
+
+Building plan approval.
+
+Construction permission.
+
+Occupancy certificate.
+
+Completion certificate.
+
+Trade premises permission.
+
+Potential approval types:
+- Land Use Approval
+- Building Plan Approval
+- Construction Permission
+- Occupancy Certificate
+- Completion Certificate
+- Trade Premises Approval
+
+The business should verify requirements with the relevant local planning or municipal authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

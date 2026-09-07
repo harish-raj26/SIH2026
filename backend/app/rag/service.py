@@ -6,9 +6,7 @@ from app.rag.retriever import RegulatoryRetriever
 class RAGService:
 
     def __init__(self):
-
         self.retriever = RegulatoryRetriever()
-
         self._build_index()
 
     def _build_index(self):
@@ -30,19 +28,21 @@ class RAGService:
                     "text": chunk
                 })
 
-        self.retriever.build_index(
-            chunks
-        )
+        self.retriever.build_index(chunks)
 
     def search(
         self,
         query: str,
-        top_k: int = 3
+        top_k: int = 10,
+        source_filter=None,
+        min_score: float = 0.05
     ):
 
         return self.retriever.search(
-            query,
-            top_k
+            query=query,
+            top_k=top_k,
+            source_filter=source_filter,
+            min_score=min_score
         )
 
 

@@ -1,0 +1,40 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Health and Sanitation Requirements
+
+Businesses involving food, healthcare, public interaction, manufacturing, accommodation, or other activities affecting public health may be subject to health and sanitation requirements.
+
+Requirements may depend on:
+
+- Nature of business
+- Number of employees
+- Public access
+- Food handling
+- Healthcare activities
+- Sanitation facilities
+- Waste generation
+- Location
+
+Potential regulatory requirements may include:
+
+Health trade licence.
+
+Sanitation approval.
+
+Health inspection.
+
+Medical establishment registration where applicable.
+
+Public health clearance where applicable.
+
+Potential approval types:
+- Health Trade Licence
+- Sanitation Approval
+- Health Inspection Certificate
+- Medical Establishment Registration
+- Public Health Clearance
+
+The business should verify applicable requirements with the competent health or local authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

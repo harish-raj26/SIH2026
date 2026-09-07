@@ -1,0 +1,34 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Business Registration and Establishment Requirements
+
+A business may require registration or incorporation according to its legal structure and the nature of its activities.
+
+Possible regulatory requirements may include:
+
+Company incorporation or registration.
+
+Limited liability partnership registration.
+
+Partnership registration.
+
+Proprietorship or local business registration where applicable.
+
+Registration under applicable shops and establishments requirements.
+
+Tax registration where applicable based on the nature, turnover, location, and activities of the business.
+
+The applicable registration depends on the legal structure, business activity, location, and applicable thresholds.
+
+The business should verify the applicable registration requirements with the competent government authority.
+
+Potential approval types:
+- Business Registration
+- Company Incorporation
+- LLP Registration
+- Partnership Registration
+- Shops and Establishment Registration
+- Tax Registration
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

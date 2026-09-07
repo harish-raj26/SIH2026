@@ -1,0 +1,42 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Labour and Employment Requirements
+
+Businesses employing workers may be subject to labour and employment requirements.
+
+Requirements may depend on:
+
+- Number of employees
+- Type of employment
+- Nature of work
+- Working hours
+- Wages
+- Workplace conditions
+- Industry
+- Location
+
+Potential regulatory requirements may include:
+
+Employee registration.
+
+Establishment registration.
+
+Labour welfare registration.
+
+Employment-related licences or registrations.
+
+Workplace safety compliance.
+
+Contract labour requirements where applicable.
+
+Potential approval types:
+- Labour Registration
+- Establishment Registration
+- Labour Welfare Registration
+- Contract Labour Registration
+- Workplace Safety Approval
+
+The business should verify applicable requirements with the competent labour authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

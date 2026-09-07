@@ -1,0 +1,42 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Electrical and Energy Requirements
+
+Businesses using significant electrical loads, electrical installations, generators, boilers, or other energy systems may require applicable permissions or inspections.
+
+Requirements may depend on:
+
+- Connected electrical load
+- Type of electrical installation
+- Generator capacity
+- Machinery
+- Industrial activity
+- Building type
+- Energy source
+- Location
+
+Potential regulatory requirements may include:
+
+Electrical installation approval.
+
+Electrical safety inspection.
+
+Electrical connection permission.
+
+Generator permission.
+
+Boiler-related approval where applicable.
+
+Energy-related registration where applicable.
+
+Potential approval types:
+- Electrical Installation Approval
+- Electrical Safety Certificate
+- Generator Permission
+- Boiler Approval
+- Energy Registration
+
+The business should verify applicable requirements with the competent electrical, energy, or local authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

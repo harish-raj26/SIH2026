@@ -1,0 +1,40 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Fire and Building Safety Requirements
+
+Businesses operating from commercial, industrial, storage, or public premises may be subject to fire safety requirements.
+
+Requirements may depend on:
+
+- Building size
+- Building height
+- Occupancy
+- Number of employees
+- Nature of activity
+- Storage of combustible materials
+- Storage of hazardous materials
+- Fire load
+- Location
+
+Potential regulatory requirements may include:
+
+Fire NOC.
+
+Fire safety approval.
+
+Fire safety certificate.
+
+Fire protection system approval.
+
+Inspection by the competent fire authority.
+
+Potential approval types:
+- Fire Safety Approval
+- Fire NOC
+- Fire Safety Certificate
+- Fire Protection System Approval
+
+The business should verify applicable requirements with the competent fire and rescue authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

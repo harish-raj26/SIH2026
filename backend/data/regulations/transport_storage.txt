@@ -1,0 +1,43 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Transportation and Storage Requirements
+
+Businesses transporting, storing, warehousing, or distributing goods may be subject to transportation, warehouse, storage, or safety requirements.
+
+Requirements may depend on:
+
+- Type of goods
+- Quantity
+- Hazard classification
+- Storage capacity
+- Vehicle type
+- Transportation activity
+- Warehouse type
+- Location
+
+Potential regulatory requirements may include:
+
+Warehouse registration.
+
+Storage licence.
+
+Commercial vehicle permit.
+
+Goods transportation authorization.
+
+Hazardous material transportation permission.
+
+Cold storage registration where applicable.
+
+Potential approval types:
+- Warehouse Registration
+- Storage Licence
+- Commercial Vehicle Permit
+- Goods Transportation Authorization
+- Hazardous Material Transport Permission
+- Cold Storage Registration
+
+The business should verify applicable requirements with the competent transport, storage, local, or sector authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.

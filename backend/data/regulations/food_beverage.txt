@@ -1,0 +1,43 @@
+DEMO / PROTOTYPE REGULATORY SOURCE
+
+Food and Beverage Requirements
+
+Businesses involved in manufacturing, processing, storing, distributing, serving, or selling food and beverages may be subject to food safety requirements.
+
+Requirements may depend on:
+
+- Type of food
+- Type of beverage
+- Manufacturing activity
+- Production capacity
+- Food handling activity
+- Storage activity
+- Distribution activity
+- Location
+
+Potential regulatory requirements may include:
+
+Food business registration.
+
+Food manufacturing licence.
+
+Food processing approval.
+
+Food storage permission.
+
+Food distribution registration.
+
+Product-specific food authorization where applicable.
+
+Potential approval types:
+- Food Business Registration
+- Food Manufacturing Licence
+- Food Processing Approval
+- Food Storage Permission
+- Food Distribution Registration
+- Product-Specific Food Authorization
+
+The applicable requirement should be verified with the competent food safety authority.
+
+This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+It must not be treated as legal advice or an official statement of law.
