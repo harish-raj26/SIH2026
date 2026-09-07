@@ -120,12 +120,19 @@ export function ApplicationWizardPage() {
     setGeneratingFields(true);
     try {
       const existing = await fieldService.getFields(appId);
-      if (existing?.fields && existing.fields.length > 0) {
-        setFields(existing.fields);
-      } else {
-        const generated = await fieldService.generateFields(appId);
-        setFields(generated.fields || []);
-      }
+      const normalizeFields = (items = []) =>
+  items.map((field) => ({
+    ...field,
+    field_value: field.field_value ?? field.value ?? "",
+    validation_error: null,
+  }));
+
+if (existing?.fields && existing.fields.length > 0) {
+  setFields(normalizeFields(existing.fields));
+} else {
+  const generated = await fieldService.generateFields(appId);
+  setFields(normalizeFields(generated.fields));
+}
     } catch (err) {
       showError(err.message || 'Failed to generate form fields', 'Fields Error');
     } finally {
@@ -134,37 +141,116 @@ export function ApplicationWizardPage() {
   };
 
   // Field change
-  const handleFieldChange = (fieldId, val) => {
-    setFields((prev) =>
-      prev.map((f) => (f.id === fieldId ? { ...f, field_value: val, status: val ? 'Completed' : 'Pending' } : f))
-    );
-  };
+  const handleFieldChange = (fieldId, value) => {
+  setFields((prev) =>
+    prev.map((f) =>
+      f.id === fieldId
+        ? {
+            ...f,
+            field_value: value,
+            status: value ? "Completed" : "Pending",
+          }
+        : f
+    )
+  );
+};
 
   // Field blur / save
   const handleFieldBlur = async (fieldId, val) => {
-    try {
-      await fieldService.updateField(fieldId, val);
-    } catch (err) {
-      console.error('Failed to save field:', err);
-    }
-  };
+  try {
+    await fieldService.updateField(fieldId, val);
+
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id === fieldId
+          ? {
+              ...f,
+              field_value: val,
+              status: val ? 'Completed' : 'Pending',
+              validation_error: null,
+            }
+          : f
+      )
+    );
+  } catch (err) {
+    const message =
+      err.message || 'This information is not appropriate for this field.';
+
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id === fieldId
+          ? {
+              ...f,
+              status: 'Pending',
+              validation_error: message,
+            }
+          : f
+      )
+    );
+
+    showError(message, 'Invalid Information');
+  }
+};
 
   // AI Field Suggestion
   const handleSuggestField = async (fieldId) => {
-    setSuggestingFieldId(fieldId);
-    try {
-      const res = await fieldService.suggestField(fieldId);
-      const updated = res.field;
-      setFields((prev) =>
-        prev.map((f) => (f.id === fieldId ? { ...f, ai_suggestion: updated.ai_suggestion } : f))
+  setSuggestingFieldId(fieldId);
+
+  try {
+    const res = await fieldService.suggestField(fieldId);
+
+    const updated = res.field;
+    const suggestion = updated.ai_suggestion?.trim();
+
+    if (
+      !suggestion ||
+      suggestion.toLowerCase() === "information not available"
+    ) {
+      showError(
+        "AI could not find suitable information for this field. Please enter it manually.",
+        "AI Autofill"
       );
-      showSuccess('Gemini AI derived a suggested value from enterprise records', 'AI Autofill');
-    } catch (err) {
-      showError(err.message || 'Failed to generate suggestion', 'AI Suggestion Error');
-    } finally {
-      setSuggestingFieldId(null);
+
+      setFields((prev) =>
+        prev.map((f) =>
+          f.id === fieldId
+            ? { ...f, ai_suggestion: null }
+            : f
+        )
+      );
+
+      return;
     }
-  };
+
+    const acceptRes = await fieldService.acceptSuggestion(fieldId);
+    const accepted = acceptRes.field;
+
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id === fieldId
+          ? {
+              ...f,
+              field_value: accepted.value || suggestion,
+              ai_suggestion: null,
+              status: accepted.status || "Completed",
+            }
+          : f
+      )
+    );
+
+    showSuccess(
+      "AI Autofill completed using verified business information",
+      "AI Autofill"
+    );
+  } catch (err) {
+    showError(
+      err.message || "Failed to generate AI autofill",
+      "AI Autofill Error"
+    );
+  } finally {
+    setSuggestingFieldId(null);
+  }
+};
 
   // Accept AI Field Suggestion
   const handleAcceptSuggestion = async (fieldId) => {
@@ -501,6 +587,11 @@ export function ApplicationWizardPage() {
                     placeholder={`Enter ${field.field_name}...`}
                     className="w-full px-3 py-2 text-xs rounded-lg border border-[#E2E8E7] focus:border-[#006B68] focus:ring-2 focus:ring-[#006B68]/15"
                   />
+                  {field.validation_error && (
+  <p className="mt-1 text-xs text-red-600">
+    {field.validation_error}
+  </p>
+)}
 
                   {field.ai_suggestion && (
                     <AISuggestionCard
