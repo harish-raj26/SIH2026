@@ -60,10 +60,16 @@ def create_application(
 
     if existing:
         return {
-            "message": "Application already exists",
-            "application_id": existing.id,
-            "status": existing.status
+        "message": "Application already exists",
+        "application": {
+            "id": existing.id,
+            "business_id": existing.business_id,
+            "approval_id": existing.approval_id,
+            "status": existing.status,
+            "application_url": existing.application_url,
+            "created_at": existing.created_at
         }
+    }
 
     application = Application(
         business_id=business_id,

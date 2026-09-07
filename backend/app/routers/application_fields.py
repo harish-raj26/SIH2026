@@ -311,13 +311,52 @@ class ApplicationFieldUpdate(BaseModel):
     value: str
 
 
+def validate_field_value(field, value):
+    value = value.strip()
+
+    if not value:
+        return "This field cannot be empty."
+
+    if field.field_type == "number":
+        try:
+            float(value)
+        except ValueError:
+            return f"Please enter a valid number for '{field.field_name}'."
+
+    elif field.field_type == "boolean":
+        if value.lower() not in ["true", "false", "yes", "no"]:
+            return f"Please enter Yes or No for '{field.field_name}'."
+
+    elif field.field_type == "date":
+        from datetime import datetime
+
+        try:
+            datetime.fromisoformat(value)
+        except ValueError:
+            return f"Please enter a valid date for '{field.field_name}'."
+
+    if field.field_name == "Number of Workers":
+        try:
+            workers = float(value)
+
+            if workers < 0:
+                return "Number of Workers cannot be negative."
+
+            if not workers.is_integer():
+                return "Number of Workers must be a whole number."
+
+        except ValueError:
+            return "Number of Workers must contain a valid number."
+
+    return None
+
+
 @router.put("/{field_id}")
 def update_application_field(
     field_id: int,
     data: ApplicationFieldUpdate,
     db: Session = Depends(get_db)
 ):
-
     field = (
         db.query(ApplicationField)
         .filter(
@@ -332,7 +371,18 @@ def update_application_field(
             detail="Application field not found"
         )
 
-    field.value = data.value
+    validation_error = validate_field_value(
+        field,
+        data.value
+    )
+
+    if validation_error:
+        raise HTTPException(
+            status_code=400,
+            detail=validation_error
+        )
+
+    field.value = data.value.strip()
 
     field.status = "Completed"
 
@@ -571,13 +621,22 @@ def accept_ai_suggestion(
             detail="No AI suggestion available"
         )
 
-    field.value = field.ai_suggestion
+    validation_error = validate_field_value(
+        field,
+        field.ai_suggestion
+)
+
+    if validation_error:
+        raise HTTPException(
+                status_code=400,
+         detail=validation_error
+    )
+
+    field.value = field.ai_suggestion.strip()
 
     field.status = "Completed"
 
     db.commit()
-
-    db.refresh(field)
 
     return {
         "message": "AI suggestion accepted successfully",
