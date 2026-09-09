@@ -11,6 +11,7 @@ load_dotenv()
 class AIService:
 
     def __init__(self):
+
         api_key = os.getenv("GEMINI_API_KEY")
 
         if not api_key:
@@ -29,14 +30,17 @@ class AIService:
         business,
         approvals
     ):
+
         prompt = self.build_prompt(
             business,
             approvals
         )
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt
+        response = (
+            self.client.models.generate_content(
+                model=self.model,
+                contents=prompt
+            )
         )
 
         return self.parse_response(
@@ -50,6 +54,7 @@ class AIService:
         approvals,
         regulatory_evidence
     ):
+
         prompt = f"""
 You are BizClear, an AI regulatory compliance assistant.
 
@@ -77,14 +82,16 @@ IMPORTANT RULES:
 4. Give a practical answer that an entrepreneur can understand.
 5. Distinguish confirmed information from uncertainty.
 6. Do not claim an approval is mandatory unless the supplied
-   information supports that conclusion.
+information supports that conclusion.
 
 Return only the answer text.
 """
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt
+        response = (
+            self.client.models.generate_content(
+                model=self.model,
+                contents=prompt
+            )
         )
 
         return response.text
@@ -94,9 +101,11 @@ Return only the answer text.
         business,
         approvals
     ):
+
         approval_context = []
 
         for approval in approvals:
+
             evidence = approval.get(
                 "regulatory_evidence",
                 []
@@ -105,6 +114,7 @@ Return only the answer text.
             evidence_text = []
 
             for item in evidence:
+
                 evidence_text.append(
                     f"""
 SOURCE: {item.get("source")}
@@ -169,11 +179,11 @@ IMPORTANT RULES:
 
 Use this structure:
 
-{{
+{
     "business": "business name",
     "summary": "short compliance summary",
     "roadmap": [
-        {{
+        {
             "step": 1,
             "approval": "approval name",
             "authority": "authority",
@@ -183,34 +193,42 @@ Use this structure:
             "preparation_steps": [],
             "inspection_required": false,
             "evidence": []
-        }}
+        }
     ]
-}}
+}
 """
+
         return prompt
 
     def parse_response(
         self,
         response_text
     ):
+
         cleaned = response_text.strip()
 
         if cleaned.startswith("```"):
+
             cleaned = cleaned.replace(
                 "```json",
                 ""
             )
+
             cleaned = cleaned.replace(
                 "```",
                 ""
             )
+
             cleaned = cleaned.strip()
 
         try:
+
             return json.loads(
                 cleaned
             )
+
         except json.JSONDecodeError:
+
             return {
                 "error": "AI returned invalid JSON",
                 "raw_response": response_text
