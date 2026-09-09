@@ -21,31 +21,153 @@ def get_business_context(business: Business):
 
 def build_regulatory_query(business: Business):
 
-    context = get_business_context(business)
+    context = get_business_context(
+        business
+    )
+
+    industry = (
+        context["industry"]
+        or ""
+    )
+
+    business_type = (
+        context["business_type"]
+        or ""
+    )
+
+    production_type = (
+        context["production_type"]
+        or ""
+    )
+
+    location = (
+        context["location"]
+        or ""
+    )
 
     query_parts = [
+
         "required approvals",
         "licenses",
         "permits",
         "registrations",
         "clearances",
+        "authorizations",
+        "permissions",
+        "certificates",
+        "consents",
         "compliance requirements",
-        f"business name {context['name']}",
-        f"industry {context['industry'] or ''}",
-        f"business type {context['business_type'] or ''}",
-        f"location {context['location'] or ''}",
-        f"production type {context['production_type'] or ''}",
-        f"pollution category {context['pollution_category'] or ''}",
-        f"employees {context['employees'] or ''}",
-        f"building area {context['building_area'] or ''}",
-        f"water requirement {context['water_requirement'] or ''}",
-        f"electricity requirement {context['electricity_requirement'] or ''}",
+
+        f"business name {context['name'] or ''}",
+
+        f"industry {industry}",
+
+        f"business type {business_type}",
+
+        f"location {location}",
+
+        f"production type {production_type}",
+
+        f"pollution category "
+        f"{context['pollution_category'] or ''}",
+
+        f"employees "
+        f"{context['employees'] or ''}",
+
+        f"building area "
+        f"{context['building_area'] or ''}",
+
+        f"water requirement "
+        f"{context['water_requirement'] or ''}",
+
+        f"electricity requirement "
+        f"{context['electricity_requirement'] or ''}",
     ]
 
-    return " ".join(query_parts)
+    domain_queries = [
+
+        f"""
+        {industry}
+        sector specific regulatory requirements
+        industry specific approvals licences permits
+        product registration authorization
+        manufacturing processing permissions
+        """,
+
+        f"""
+        {industry}
+        manufacturing production processing
+        factory establishment
+        industrial licence registration
+        operational approvals
+        """,
+
+        f"""
+        {industry}
+        product licence
+        product registration
+        product approval
+        product authorization
+        """,
+
+        f"""
+        {industry}
+        storage handling
+        warehouse transportation
+        storage permission
+        handling authorization
+        transport permit
+        """,
+
+        f"""
+        {industry}
+        environmental pollution
+        wastewater water waste
+        environmental clearance
+        pollution consent
+        waste authorization
+        """,
+
+        f"""
+        {industry}
+        building premises
+        fire safety
+        electrical safety
+        occupancy
+        facility approvals
+        """,
+
+        f"""
+        {industry}
+        workers employees labour
+        workplace safety
+        employment registration
+        labour compliance
+        """,
+
+        f"""
+        {industry}
+        packaging labeling
+        product labeling
+        packaging registration
+        consumer product requirements
+        """
+    ]
+
+    query = " ".join(
+        query_parts
+    )
+
+    query += " ".join(
+        domain_queries
+    )
+
+    return query
 
 
-def discover_rule_based_approvals(business: Business):
+def discover_rule_based_approvals(
+    business: Business
+):
 
     approvals = []
 
@@ -73,18 +195,31 @@ def discover_rule_based_approvals(business: Business):
     ):
 
         approvals.append({
-            "name": "Factory Licence",
-            "authority": "Factories and Labour Department",
-            "category": "Factory",
-            "description": (
-                "Approval related to operation "
-                "of a manufacturing establishment."
-            ),
-            "reason": (
-                f"The business operates an "
-                f"industrial activity ({business.industry})."
-            ),
-            "priority": "High"
+
+            "name":
+                "Factory Licence",
+
+            "authority":
+                "Factories and Labour Department",
+
+            "category":
+                "Factory",
+
+            "description":
+                (
+                    "Approval related to operation "
+                    "of a manufacturing establishment."
+                ),
+
+            "reason":
+                (
+                    f"The business operates an "
+                    f"industrial activity "
+                    f"({business.industry})."
+                ),
+
+            "priority":
+                "High"
         })
 
     if (
@@ -107,18 +242,32 @@ def discover_rule_based_approvals(business: Business):
         )
 
         approvals.append({
-            "name": "Pollution Control Consent",
-            "authority": "State Pollution Control Authority",
-            "category": "Environment",
-            "description": (
-                "Environmental consent based on "
-                "the nature and category of the activity."
-            ),
-            "reason": (
-                "The business operates an activity "
-                f"with declared pollution category: {category}."
-            ),
-            "priority": "High"
+
+            "name":
+                "Pollution Control Consent",
+
+            "authority":
+                "State Pollution Control Authority",
+
+            "category":
+                "Environment",
+
+            "description":
+                (
+                    "Environmental consent based on "
+                    "the nature and category "
+                    "of the activity."
+                ),
+
+            "reason":
+                (
+                    "The business operates an "
+                    "activity with declared "
+                    f"pollution category: {category}."
+                ),
+
+            "priority":
+                "High"
         })
 
     if (
@@ -130,18 +279,31 @@ def discover_rule_based_approvals(business: Business):
     ):
 
         approvals.append({
-            "name": "Building Approval",
-            "authority": "Local Planning Authority",
-            "category": "Building",
-            "description": (
-                "Approval associated with "
-                "the business premises."
-            ),
-            "reason": (
-                "The business operates from a "
-                "physical industrial facility/building."
-            ),
-            "priority": "Medium"
+
+            "name":
+                "Building Approval",
+
+            "authority":
+                "Local Planning Authority",
+
+            "category":
+                "Building",
+
+            "description":
+                (
+                    "Approval associated with "
+                    "the business premises."
+                ),
+
+            "reason":
+                (
+                    "The business operates from "
+                    "a physical industrial "
+                    "facility/building."
+                ),
+
+            "priority":
+                "Medium"
         })
 
     if (
@@ -156,18 +318,31 @@ def discover_rule_based_approvals(business: Business):
     ):
 
         approvals.append({
-            "name": "Fire Safety Approval",
-            "authority": "Fire and Rescue Department",
-            "category": "Safety",
-            "description": (
-                "Fire safety compliance "
-                "for applicable premises."
-            ),
-            "reason": (
-                "The business operates from a physical "
-                "premises with workforce safety mandates."
-            ),
-            "priority": "High"
+
+            "name":
+                "Fire Safety Approval",
+
+            "authority":
+                "Fire and Rescue Department",
+
+            "category":
+                "Safety",
+
+            "description":
+                (
+                    "Fire safety compliance "
+                    "for applicable premises."
+                ),
+
+            "reason":
+                (
+                    "The business operates from "
+                    "a physical premises with "
+                    "workforce safety mandates."
+                ),
+
+            "priority":
+                "High"
         })
 
     if (
@@ -176,17 +351,31 @@ def discover_rule_based_approvals(business: Business):
     ):
 
         approvals.append({
-            "name": "Food Business Approval",
-            "authority": "Food Safety Authority",
-            "category": "Food Safety",
-            "description": (
-                "Food-related regulatory approval "
-                "for applicable businesses."
-            ),
-            "reason": (
-                "The business operates in the food sector."
-            ),
-            "priority": "High"
+
+            "name":
+                "Food Business Approval",
+
+            "authority":
+                "Food Safety Authority",
+
+            "category":
+                "Food Safety",
+
+            "description":
+                (
+                    "Food-related regulatory "
+                    "approval for applicable "
+                    "businesses."
+                ),
+
+            "reason":
+                (
+                    "The business operates "
+                    "in the food sector."
+                ),
+
+            "priority":
+                "High"
         })
 
     if (
@@ -205,20 +394,34 @@ def discover_rule_based_approvals(business: Business):
     ):
 
         approvals.append({
-            "name": "Business Registration",
-            "authority": (
-                "Corporate/Business Registration Authority"
-            ),
-            "category": "Business",
-            "description": (
-                "Registration associated with "
-                "the legal form of the business."
-            ),
-            "reason": (
-                "The business is represented as "
-                "an established legal entity."
-            ),
-            "priority": "High"
+
+            "name":
+                "Business Registration",
+
+            "authority":
+                (
+                    "Corporate/Business "
+                    "Registration Authority"
+                ),
+
+            "category":
+                "Business",
+
+            "description":
+                (
+                    "Registration associated "
+                    "with the legal form "
+                    "of the business."
+                ),
+
+            "reason":
+                (
+                    "The business is represented "
+                    "as an established legal entity."
+                ),
+
+            "priority":
+                "High"
         })
 
     return approvals

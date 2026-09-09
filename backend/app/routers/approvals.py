@@ -4,8 +4,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.business import Business
 from app.models.approval_requirement import ApprovalRequirement
-from app.services.rules import build_regulatory_query
-from app.rag.service import rag_service
+
+from app.services.rules import (
+    build_regulatory_query
+)
+
+from app.rag.service import (
+    rag_service
+)
+
 from app.services.approval_discovery import (
     approval_discovery_service
 )
@@ -18,6 +25,7 @@ router = APIRouter(
 
 
 def normalize_name(name):
+
     return (
         name
         .lower()
@@ -47,123 +55,138 @@ def already_exists(
 def get_business_context(business):
 
     return {
+
         "name": business.name,
+
         "industry": business.industry,
-        "business_type": business.business_type,
-        "location": business.location,
-        "investment": business.investment,
-        "employees": business.employees,
-        "land_area": business.land_area,
-        "building_area": business.building_area,
-        "pollution_category": (
-            business.pollution_category
-        ),
-        "production_type": (
-            business.production_type
-        ),
-        "water_requirement": (
-            business.water_requirement
-        ),
-        "electricity_requirement": (
+
+        "business_type":
+            business.business_type,
+
+        "location":
+            business.location,
+
+        "investment":
+            business.investment,
+
+        "employees":
+            business.employees,
+
+        "land_area":
+            business.land_area,
+
+        "building_area":
+            business.building_area,
+
+        "pollution_category":
+            business.pollution_category,
+
+        "production_type":
+            business.production_type,
+
+        "water_requirement":
+            business.water_requirement,
+
+        "electricity_requirement":
             business.electricity_requirement
-        )
     }
 
 
 def collect_regulatory_evidence(business):
     """
     Collect regulatory evidence using multiple
-    business-driven search perspectives.
+    focused business-driven searches.
     """
 
     industry = (
-        business.industry
-        or ""
-    )
-
-    business_type = (
-        business.business_type
-        or ""
+        business.industry or ""
     )
 
     production_type = (
-        business.production_type
-        or ""
+        business.production_type or ""
     )
 
-    regulatory_queries = [
+    queries = [
+
+        f"""
+        {industry}
+        {production_type}
+        industry specific regulatory requirements
+        sector specific licences approvals permits
+        """,
+
+        f"""
+        {industry}
+        products
+        product licensing
+        product registration
+        product approval
+        product authorization
+        """,
+
+        f"""
+        {industry}
+        manufacturing
+        processing
+        production
+        manufacturing licence
+        manufacturing approval
+        """,
+
+        f"""
+        {industry}
+        storage
+        handling
+        hazardous substances
+        storage permission
+        handling authorization
+        """,
+
+        f"""
+        {industry}
+        environmental
+        pollution
+        wastewater
+        waste
+        clearance
+        consent
+        authorization
+        """,
+
+        f"""
+        {industry}
+        building
+        premises
+        fire safety
+        electrical safety
+        facility approval
+        """,
+
+        f"""
+        {industry}
+        workers
+        employees
+        labour
+        workplace safety
+        employment registration
+        """,
 
         build_regulatory_query(
             business
-        ),
-
-        f"""
-        {industry}
-        {business_type}
-        {production_type}
-        specific licences permits approvals
-        registrations certifications clearances
-        """,
-
-        f"""
-        {industry}
-        pharmaceutical drug medicine healthcare
-        manufacturing processing production
-        licences approvals registrations
-        product licensing
-        """,
-
-        f"""
-        {industry}
-        chemical hazardous substance
-        chemical handling storage manufacturing
-        authorization approval licence permit
-        """,
-
-        f"""
-        {industry}
-        product manufacturing product registration
-        product specific authorization
-        product licence approval
-        """,
-
-        f"""
-        {industry}
-        storage warehouse transportation
-        storage permission transport authorization
-        licences permits approvals
-        """,
-
-        f"""
-        {industry}
-        environmental pollution wastewater
-        water waste disposal consent clearance
-        """,
-
-        f"""
-        {industry}
-        building land fire safety
-        electrical energy safety approvals
-        """,
-
-        f"""
-        {industry}
-        workers employees labour employment
-        workplace safety registrations approvals
-        """
+        )
     ]
 
     evidence_map = {}
 
-    for query in regulatory_queries:
+    for query in queries:
 
         if not query.strip():
             continue
 
         results = rag_service.search(
             query=query,
-            top_k=20,
-            min_score=0.02
+            top_k=15,
+            min_score=0.0
         )
 
         for item in results:
@@ -243,37 +266,32 @@ def discover_business_approvals(
 
         existing_approval_response.append({
 
-            "id": approval.id,
+            "id":
+                approval.id,
 
-            "name": (
-                approval.approval_name
-            ),
+            "name":
+                approval.approval_name,
 
-            "authority": (
-                approval.authority
-            ),
+            "authority":
+                approval.authority,
 
-            "category": (
-                approval.category
-            ),
+            "category":
+                approval.category,
 
-            "priority": (
-                approval.priority
-            ),
+            "priority":
+                approval.priority,
 
-            "status": (
-                approval.status
-            ),
+            "status":
+                approval.status,
 
-            "confidence": (
-                approval.confidence
-            ),
+            "confidence":
+                approval.confidence,
 
-            "reason": (
-                approval.reason
-            ),
+            "reason":
+                approval.reason,
 
-            "regulatory_evidence": []
+            "regulatory_evidence":
+                []
         })
 
     business_context = (
@@ -292,48 +310,52 @@ def discover_business_approvals(
 
         return {
 
-            "business_id": (
-                business.id
-            ),
+            "business_id":
+                business.id,
 
-            "business_name": (
-                business.name
-            ),
+            "business_name":
+                business.name,
 
-            "existing_approval_count": (
-                len(existing_approvals)
-            ),
+            "existing_approval_count":
+                len(existing_approvals),
 
-            "new_approval_count": 0,
+            "new_approval_count":
+                0,
 
-            "approval_count": (
-                len(existing_approvals)
-            ),
+            "recommendation_count":
+                0,
 
-            "evidence_count": 0,
+            "persisted_approval_count":
+                0,
 
-            "approvals": (
-                existing_approval_response
-            ),
+            "approval_count":
+                len(existing_approvals),
 
-            "recommendations": [],
+            "evidence_count":
+                0,
 
-            "message": (
-                "No sufficiently relevant "
-                "regulatory evidence was found."
-            )
+            "approvals":
+                existing_approval_response,
+
+            "recommendations":
+                [],
+
+            "message":
+                (
+                    "No sufficiently relevant "
+                    "regulatory evidence was found."
+                )
         }
 
     ai_result = (
         approval_discovery_service
         .discover_approvals(
-            business_context=(
-                business_context
-            ),
 
-            regulatory_evidence=(
+            business_context=
+                business_context,
+
+            regulatory_evidence=
                 rag_results
-            )
         )
     )
 
@@ -348,9 +370,11 @@ def discover_business_approvals(
             ]
         )
 
-    candidates = ai_result.get(
-        "approvals",
-        []
+    candidates = (
+        ai_result.get(
+            "approvals",
+            []
+        )
     )
 
     final_candidates = []
@@ -362,6 +386,9 @@ def discover_business_approvals(
         approval_name = (
             candidate.get(
                 "approval_name"
+            )
+            or candidate.get(
+                "name"
             )
             or ""
         ).strip()
@@ -384,10 +411,10 @@ def discover_business_approvals(
             candidate.get(
                 "applicability"
             )
-            or ""
-        ).strip().lower()
+            or "Review Required"
+        ).strip()
 
-        if applicability not in [
+        if applicability.lower() not in [
             "applicable",
             "review required"
         ]:
@@ -427,21 +454,26 @@ def discover_business_approvals(
 
             valid_evidence.append({
 
-                "source": source,
+                "source":
+                    source,
 
-                "text": text,
+                "text":
+                    text,
 
-                "score": item.get(
-                    "score"
-                ),
+                "score":
+                    item.get(
+                        "score"
+                    ),
 
-                "matched_line": item.get(
-                    "matched_line"
-                ),
+                "matched_line":
+                    item.get(
+                        "matched_line"
+                    ),
 
-                "context": item.get(
-                    "context"
-                )
+                "context":
+                    item.get(
+                        "context"
+                    )
             })
 
         if not valid_evidence:
@@ -490,90 +522,88 @@ def discover_business_approvals(
 
         final_candidates.append({
 
-            "name": (
-                approval_name
-            ),
+            "name":
+                approval_name,
 
-            "authority": (
-                candidate.get(
-                    "authority"
-                )
-                or "Regulatory Authority"
-            ),
+            "authority":
+                (
+                    candidate.get(
+                        "authority"
+                    )
+                    or "Regulatory Authority"
+                ),
 
-            "category": (
-                candidate.get(
-                    "category"
-                )
-                or "Regulatory Compliance"
-            ),
+            "category":
+                (
+                    candidate.get(
+                        "category"
+                    )
+                    or "Regulatory Compliance"
+                ),
 
-            "application_name": (
-                candidate.get(
-                    "application_name"
-                )
-                or (
-                    f"{approval_name} "
-                    "Application"
-                )
-            ),
+            "application_name":
+                (
+                    candidate.get(
+                        "application_name"
+                    )
+                    or (
+                        f"{approval_name} "
+                        "Application"
+                    )
+                ),
 
-            "application_url": (
+            "application_url":
                 candidate.get(
                     "application_url"
-                )
-            ),
+                ),
 
-            "application_department": (
+            "application_department":
                 candidate.get(
                     "application_department"
-                )
-            ),
+                ),
 
-            "description": (
-                candidate.get(
-                    "reason"
-                )
-            ),
+            "description":
+                (
+                    candidate.get(
+                        "description"
+                    )
+                    or candidate.get(
+                        "reason"
+                    )
+                ),
 
-            "reason": (
-                candidate.get(
-                    "reason"
-                )
-                or (
-                    "Regulatory requirement "
-                    "identified from supplied "
-                    "evidence."
-                )
-            ),
+            "reason":
+                (
+                    candidate.get(
+                        "reason"
+                    )
+                    or (
+                        "Regulatory requirement "
+                        "identified from supplied "
+                        "evidence."
+                    )
+                ),
 
-            "priority": priority,
+            "priority":
+                priority,
 
-            "confidence": round(
-                confidence,
-                2
-            ),
+            "confidence":
+                round(
+                    confidence,
+                    2
+                ),
 
-            "applicability": (
-                candidate.get(
-                    "applicability"
-                )
-                or "Review Required"
-            ),
+            "applicability":
+                applicability,
 
-            "regulatory_evidence": (
+            "regulatory_evidence":
                 valid_evidence
-            )
         })
 
     final_candidates.sort(
         key=lambda item: (
-            -item[
-                "confidence"
-            ],
-            item[
-                "name"
-            ]
+            -item["confidence"],
+            item["name"]
         )
     )
 
@@ -585,75 +615,54 @@ def discover_business_approvals(
 
         recommendation = {
 
-            "id": None,
+            "id":
+                None,
 
-            "name": (
-                candidate[
-                    "name"
-                ]
-            ),
+            "name":
+                candidate["name"],
 
-            "authority": (
-                candidate[
-                    "authority"
-                ]
-            ),
+            "authority":
+                candidate["authority"],
 
-            "category": (
-                candidate[
-                    "category"
-                ]
-            ),
+            "category":
+                candidate["category"],
 
-            "application_name": (
+            "application_name":
                 candidate[
                     "application_name"
-                ]
-            ),
+                ],
 
-            "application_url": (
+            "application_url":
                 candidate[
                     "application_url"
-                ]
-            ),
+                ],
 
-            "application_department": (
+            "application_department":
                 candidate[
                     "application_department"
-                ]
-            ),
+                ],
 
-            "priority": (
-                candidate[
-                    "priority"
-                ]
-            ),
+            "priority":
+                candidate["priority"],
 
-            "status": "Recommendation",
+            "status":
+                "Recommendation",
 
-            "confidence": (
-                candidate[
-                    "confidence"
-                ]
-            ),
+            "confidence":
+                candidate["confidence"],
 
-            "applicability": (
+            "applicability":
                 candidate[
                     "applicability"
-                ]
-            ),
+                ],
 
-            "reason": (
-                candidate[
-                    "reason"
-                ]
-            ),
+            "reason":
+                candidate["reason"],
 
-            "regulatory_evidence": (
+            "regulatory_evidence":
                 candidate[
                     "regulatory_evidence"
                 ]
-            )
         }
 
         recommendations.append(
@@ -663,7 +672,7 @@ def discover_business_approvals(
         if (
             candidate[
                 "applicability"
-            ].strip().lower()
+            ].lower()
             == "applicable"
         ):
 
@@ -678,53 +687,46 @@ def discover_business_approvals(
         requirement = (
             ApprovalRequirement(
 
-                business_id=(
-                    business.id
-                ),
+                business_id=
+                    business.id,
 
-                approval_name=(
+                approval_name=
                     candidate[
                         "name"
-                    ]
-                ),
+                    ],
 
-                authority=(
+                authority=
                     candidate[
                         "authority"
-                    ]
-                ),
+                    ],
 
-                category=(
+                category=
                     candidate[
                         "category"
-                    ]
-                ),
+                    ],
 
-                description=(
+                description=
                     candidate[
                         "description"
-                    ]
-                ),
+                    ],
 
-                reason=(
+                reason=
                     candidate[
                         "reason"
-                    ]
-                ),
+                    ],
 
-                priority=(
+                priority=
                     candidate[
                         "priority"
-                    ]
-                ),
+                    ],
 
-                status="Not Started",
+                status=
+                    "Not Started",
 
-                confidence=(
+                confidence=
                     candidate[
                         "confidence"
                     ]
-                )
             )
         )
 
@@ -753,67 +755,54 @@ def discover_business_approvals(
 
         response_approvals.append({
 
-            "id": (
-                requirement.id
-            ),
+            "id":
+                requirement.id,
 
-            "name": (
-                requirement.approval_name
-            ),
+            "name":
+                requirement.approval_name,
 
-            "authority": (
-                requirement.authority
-            ),
+            "authority":
+                requirement.authority,
 
-            "category": (
-                requirement.category
-            ),
+            "category":
+                requirement.category,
 
-            "application_name": (
+            "application_name":
                 candidate[
                     "application_name"
-                ]
-            ),
+                ],
 
-            "application_url": (
+            "application_url":
                 candidate[
                     "application_url"
-                ]
-            ),
+                ],
 
-            "application_department": (
+            "application_department":
                 candidate[
                     "application_department"
-                ]
-            ),
+                ],
 
-            "priority": (
-                requirement.priority
-            ),
+            "priority":
+                requirement.priority,
 
-            "status": (
-                requirement.status
-            ),
+            "status":
+                requirement.status,
 
-            "confidence": (
-                requirement.confidence
-            ),
+            "confidence":
+                requirement.confidence,
 
-            "applicability": (
+            "applicability":
                 candidate[
                     "applicability"
-                ]
-            ),
+                ],
 
-            "reason": (
-                requirement.reason
-            ),
+            "reason":
+                requirement.reason,
 
-            "regulatory_evidence": (
+            "regulatory_evidence":
                 candidate[
                     "regulatory_evidence"
                 ]
-            )
         })
 
     all_approvals = (
@@ -823,43 +812,33 @@ def discover_business_approvals(
 
     return {
 
-        "business_id": (
-            business.id
-        ),
+        "business_id":
+            business.id,
 
-        "business_name": (
-            business.name
-        ),
+        "business_name":
+            business.name,
 
-        "existing_approval_count": (
-            len(existing_approvals)
-        ),
+        "existing_approval_count":
+            len(existing_approvals),
 
-        "new_approval_count": (
-            len(response_approvals)
-        ),
+        "new_approval_count":
+            len(response_approvals),
 
-        "recommendation_count": (
-            len(recommendations)
-        ),
+        "recommendation_count":
+            len(recommendations),
 
-        "persisted_approval_count": (
-            len(response_approvals)
-        ),
+        "persisted_approval_count":
+            len(response_approvals),
 
-        "approval_count": (
-            len(all_approvals)
-        ),
+        "approval_count":
+            len(all_approvals),
 
-        "evidence_count": (
-            len(rag_results)
-        ),
+        "evidence_count":
+            len(rag_results),
 
-        "approvals": (
-            all_approvals
-        ),
+        "approvals":
+            all_approvals,
 
-        "recommendations": (
+        "recommendations":
             recommendations
-        )
     }

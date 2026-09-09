@@ -12,6 +12,7 @@ class RegulatoryRetriever:
         )
 
         self.documents = []
+
         self.vectors = None
 
     def build_index(self, chunks):
@@ -29,8 +30,9 @@ class RegulatoryRetriever:
 
             return
 
-        self.vectors = self.vectorizer.fit_transform(
-            texts
+        self.vectors = (
+            self.vectorizer
+            .fit_transform(texts)
         )
 
     def search(
@@ -38,35 +40,45 @@ class RegulatoryRetriever:
         query: str,
         top_k: int = 10,
         source_filter=None,
-        min_score: float = 0.05
+        min_score: float = 0.0
     ):
 
         if self.vectors is None:
+
             return []
 
         if not query or not query.strip():
+
             return []
 
-        query_vector = self.vectorizer.transform(
-            [query]
+        query_vector = (
+            self.vectorizer
+            .transform([query])
         )
 
-        similarities = cosine_similarity(
-            query_vector,
-            self.vectors
-        )[0]
+        similarities = (
+            cosine_similarity(
+                query_vector,
+                self.vectors
+            )[0]
+        )
 
-        ranked_indexes = similarities.argsort()[::-1]
+        ranked_indexes = (
+            similarities.argsort()[::-1]
+        )
 
         results = []
 
         for index in ranked_indexes:
 
-            document = self.documents[index]
+            document = (
+                self.documents[index]
+            )
 
             if (
                 source_filter
-                and document["source"] not in source_filter
+                and document["source"]
+                not in source_filter
             ):
                 continue
 
@@ -75,15 +87,27 @@ class RegulatoryRetriever:
             )
 
             if score < min_score:
+
                 continue
 
             results.append({
-                "source": document["source"],
-                "text": document["text"],
-                "score": round(score, 4)
+
+                "source": document[
+                    "source"
+                ],
+
+                "text": document[
+                    "text"
+                ],
+
+                "score": round(
+                    score,
+                    4
+                )
             })
 
             if len(results) >= top_k:
+
                 break
 
         return results
