@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text
 
 from app.database import Base
 
@@ -24,6 +24,12 @@ class ApplicationField(Base):
         nullable=False
     )
 
+    field_key = Column(
+        String,
+        nullable=True,
+        index=True
+    )
+
     field_type = Column(
         String,
         default="text",
@@ -41,6 +47,22 @@ class ApplicationField(Base):
         nullable=True
     )
 
+    source = Column(
+        String,
+        default="user_input",
+        nullable=False
+    )
+
+    source_field_path = Column(
+        String,
+        nullable=True
+    )
+
+    validation_error = Column(
+        Text,
+        nullable=True
+    )
+
     ai_suggestion = Column(
         String,
         nullable=True
@@ -50,4 +72,4 @@ class ApplicationField(Base):
         String,
         default="Pending",
         nullable=False
-    )
+    )

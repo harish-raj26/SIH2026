@@ -31,7 +31,7 @@ export function AiAssistantPage() {
     {
       id: 'msg_welcome',
       role: 'assistant',
-      text: `Hello! I am BizClear AI, your regulatory compliance advisor. Ask me statutory questions regarding Factory Acts, Environmental Consents, Fire Safety norms, or application steps for ${activeBusiness?.name || 'your enterprise'}.`,
+      text: `Hello! I am Byte Forge AI, your regulatory compliance advisor. Ask me statutory questions regarding Factory Acts, Environmental Consents, Fire Safety norms, or application steps for ${activeBusiness?.name || 'your enterprise'}.`,
       timestamp: new Date().toISOString(),
     },
   ]);

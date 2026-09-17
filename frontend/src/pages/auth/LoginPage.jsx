@@ -34,7 +34,7 @@ export function LoginPage() {
     setError('');
     try {
       await login(form);
-      showSuccess('Welcome back to BizClear AI', 'Authentication Successful');
+      showSuccess('Welcome back to Byte Forge', 'Authentication Successful');
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed. Check your credentials.');

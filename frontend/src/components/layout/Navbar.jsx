@@ -83,16 +83,12 @@ export function Navbar({ onMobileMenuToggle }) {
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to="/dashboard" className="flex items-center gap-2.5">
-            {/* Custom leaf/angled icon matching reference */}
-            <div className="w-8 h-8 rounded-lg bg-[#0A4D46] text-white flex items-center justify-center font-bold text-sm shadow-2xs">
-              <span className="text-[#F2A51A] mr-0.5">/</span>/
-            </div>
-            <div className="flex items-center">
-              <span className="text-xl font-extrabold text-[#0A4D46] tracking-tight">
-                Biz<span className="text-[#006B68]">Clear</span>
-              </span>
-            </div>
+          <Link to="/dashboard" className="flex items-center gap-2.5 group py-1">
+            <img
+              src="/logo-cropped.png"
+              alt="Byte Forge"
+              className="h-10 sm:h-11 w-auto object-contain transition-transform group-hover:scale-105"
+            />
           </Link>
         </div>
 
@@ -220,7 +216,7 @@ export function Navbar({ onMobileMenuToggle }) {
                     {user?.name || 'Authorized Member'}
                   </p>
                   <p className="text-[11px] text-[#66757A] truncate">
-                    {user?.email || 'officer@bizclear.ai'}
+                    {user?.email || 'officer@byteforge.ai'}
                   </p>
                   <div className="pt-1">
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-[#E6F2F2] text-[#0A4D46]">

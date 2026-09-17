@@ -36,5 +36,5 @@ Potential approval types:
 
 The business should verify applicable requirements with the competent regulatory authority.
 
-This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+This document is a fictional prototype source for testing the Byte Forge regulatory discovery system.
 It must not be treated as legal advice or an official statement of law.

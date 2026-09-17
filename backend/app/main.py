@@ -1,66 +1,38 @@
+import os
+import sys
+
+# Ensure backend root is always present in sys.path
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from app.database import Base, engine
-from app.models.business import Business
-from app.models.approval import Approval
-from app.models.application import Application
-from app.models.approval_requirement import ApprovalRequirement
-from app.models.application_document import ApplicationDocument
-
-from app.routers import ai
-from app.routers import applications
-from app.routers import application_fields
-from app.routers import application_document
-from app.routers import application_fields
-
-from app.routers import (
-    business,
-    approvals,
-    roadmap,
-    rag
-)
+from app.database import Base, engine, migrate_db
+from app import models
+from app.routers import ai, applications, application_fields, application_document
+from app.routers import business, approvals, roadmap, rag, compliance, government_webhooks
 
 Base.metadata.create_all(bind=engine)
+migrate_db()
 
+app = FastAPI(title="BizClear", description="Authoritative Regulatory Approval Discovery & Real Government Application Processing System", version="2.5.0")
 
-app = FastAPI(
-    title="BizClear AI",
-    description="AI-powered business approval and compliance platform",
-    version="1.0.0"
-)
+origins = [x.strip() for x in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if x.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-app.include_router(business.router)
-app.include_router(approvals.router)
-app.include_router(roadmap.router)
-app.include_router(rag.router)
-app.include_router(ai.router)
-app.include_router(applications.router)
-app.include_router(application_fields.router)
-app.include_router(application_document.router)
-
+for router in [business.router, approvals.router, roadmap.router, rag.router, ai.router, applications.router,
+               application_fields.router, application_document.router, compliance.router, government_webhooks.router]:
+    app.include_router(router)
 
 @app.get("/")
 def root():
-    return {
-        "message": "BizClear AI backend is running",
-        "status": "online"
-    }
-
+    return {"message": "BizClear backend is running", "status": "online", "version": app.version}
 
 @app.get("/api/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "service": "BizClear AI API"
-    }
+    from app.ai.service import ai_service
+    return {"status": "healthy", "service": "BizClear API", "ai_mode": ai_service.ai_mode,
+            "ai_available": ai_service.available, "regulatory_sources": "indexed",
+            "government_integrations": "active"}
+

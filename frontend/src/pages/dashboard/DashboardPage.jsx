@@ -17,7 +17,9 @@ import {
   HelpCircle,
   SlidersHorizontal,
   FileText,
+  Download,
 } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
 import { formatCurrency } from '../../utils/formatters';
 import { PRIORITY_STYLES } from '../../utils/constants';
 
@@ -25,6 +27,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { businesses, activeBusiness, selectBusiness } = useBusiness();
+  const { showSuccess, showError } = useNotification();
 
   const [roadmapData, setRoadmapData] = useState(null);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
@@ -70,10 +73,20 @@ export function DashboardPage() {
           roadmap: data.approvals.map((a, idx) => ({
             step: idx + 1,
             approval_id: a.id,
-            approval: a.name,
+            approval: a.name || a.approval_name,
             authority: a.authority,
             priority: a.priority,
-            status: 'Discovered',
+            status: a.status || a.approval_status || 'REQUIRED',
+            stage: a.stage || 'Pre-Operation',
+            category: a.category || 'General',
+            reason: a.reason,
+            documents_required: a.documents_required,
+            timeline: a.timeline,
+            fees: a.fees,
+            validity: a.validity,
+            source_type: a.source_type,
+            source_url: a.source_url,
+            application_url: a.application_url,
           })),
           total_steps: data.approvals.length,
         });
@@ -107,6 +120,63 @@ export function DashboardPage() {
   const displayInvestment = activeBusiness?.investment || 45000000;
   const displayEmployees = activeBusiness?.employees || 85;
   const displayType = activeBusiness?.business_type || 'Private Limited Company';
+
+  const handleDownloadApprovalsCSV = () => {
+    if (!steps || steps.length === 0) {
+      showError('No approvals available to export. Run AI Discovery first.', 'Download Notice');
+      return;
+    }
+
+    const headers = [
+      'Step',
+      'Approval / License Name',
+      'Status',
+      'Authority / Department',
+      'Priority',
+      'Lifecycle Stage',
+      'Category',
+      'Applicability Reason',
+      'Processing Timeline',
+      'Validity Period',
+      'Indicative Fees',
+      'Documents Required',
+      'Official Portal URL'
+    ];
+
+    const rows = steps.map((s, idx) => {
+      const docs = Array.isArray(s.documents_required)
+        ? s.documents_required.join('; ')
+        : (s.documents_required || '');
+
+      return [
+        `"${idx + 1}"`,
+        `"${(s.approval || s.approval_name || s.name || '').replace(/"/g, '""')}"`,
+        `"${(s.status || s.approval_status || 'REQUIRED').replace(/"/g, '""')}"`,
+        `"${(s.authority || '').replace(/"/g, '""')}"`,
+        `"${(s.priority || 'Medium').replace(/"/g, '""')}"`,
+        `"${(s.stage || 'Pre-Operation').replace(/"/g, '""')}"`,
+        `"${(s.category || 'Regulatory').replace(/"/g, '""')}"`,
+        `"${(s.reason || '').replace(/"/g, '""')}"`,
+        `"${(s.timeline || '').replace(/"/g, '""')}"`,
+        `"${(s.validity || '').replace(/"/g, '""')}"`,
+        `"${(s.fees || '').replace(/"/g, '""')}"`,
+        `"${docs.replace(/"/g, '""')}"`,
+        `"${(s.application_url || s.source_url || '').replace(/"/g, '""')}"`
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    const sanitizedBizName = (displayBizName || 'Enterprise').replace(/[^a-zA-Z0-9_-]/g, '_');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${sanitizedBizName}_Need_Approval_List.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSuccess(`Downloaded ${steps.length} statutory approvals as CSV spreadsheet.`, 'Download Complete');
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -196,7 +266,7 @@ export function DashboardPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-2xl bg-white border border-[#E5EAE8] shadow-xs overflow-hidden">
             {/* Header */}
-            <div className="flex flex-row items-center justify-between p-5 sm:p-6 border-b border-[#E5EAE8]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:p-6 border-b border-[#E5EAE8] gap-3">
               <div>
                 <h2 className="text-base font-bold text-[#172126] tracking-tight">
                   Statutory Approvals & Clearance Steps
@@ -206,13 +276,26 @@ export function DashboardPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate('/approvals')}
-                className="text-xs font-bold text-[#334144] hover:text-[#0A4D46] inline-flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                Full Roadmap <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {steps.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadApprovalsCSV}
+                    className="px-3 py-1.5 rounded-lg border border-[#CBD5D3] hover:border-[#006B68] hover:bg-[#F0F7F5] text-[#0A4D46] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download List ({steps.length})
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/approvals')}
+                  className="text-xs font-bold text-[#334144] hover:text-[#0A4D46] inline-flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  Full Roadmap <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* Card Content Area */}
@@ -374,22 +457,35 @@ export function DashboardPage() {
           <div className="rounded-2xl bg-white border border-[#E5EAE8] p-5 sm:p-6 shadow-xs space-y-4">
             <h2 className="text-sm font-bold text-[#172126]">Quick Actions</h2>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/approvals')}
-                className="flex-1 px-4 py-2.5 rounded-full bg-[#0A4D46] hover:bg-[#073833] text-white text-xs font-bold shadow-xs cursor-pointer text-center transition-colors truncate"
-              >
-                Generate Roadmap
-              </button>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/approvals')}
+                  className="flex-1 px-4 py-2.5 rounded-full bg-[#0A4D46] hover:bg-[#073833] text-white text-xs font-bold shadow-xs cursor-pointer text-center transition-colors truncate"
+                >
+                  Generate Roadmap
+                </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/documents')}
-                className="flex-1 px-4 py-2.5 rounded-full bg-[#0A4D46] hover:bg-[#073833] text-white text-xs font-bold shadow-xs cursor-pointer text-center transition-colors truncate"
-              >
-                View Reports
-              </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/documents')}
+                  className="flex-1 px-4 py-2.5 rounded-full bg-[#0A4D46] hover:bg-[#073833] text-white text-xs font-bold shadow-xs cursor-pointer text-center transition-colors truncate"
+                >
+                  View Reports
+                </button>
+              </div>
+
+              {steps.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleDownloadApprovalsCSV}
+                  className="w-full px-4 py-2.5 rounded-full border border-[#0A4D46] hover:bg-[#F0F7F5] text-[#0A4D46] text-xs font-bold shadow-xs cursor-pointer text-center transition-colors inline-flex items-center justify-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Need Approval List (.csv)
+                </button>
+              )}
             </div>
           </div>
         </div>

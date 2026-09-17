@@ -1,47 +1,35 @@
 import apiClient from '../api/api';
 
 export const applicationService = {
-  /**
-   * Create or retrieve an application for a business and approval
-   * Backend endpoint: POST /api/applications/?business_id=...&approval_id=...
-   */
   async createApplication(businessId, approvalId) {
-    const params = new URLSearchParams({
-      business_id: String(businessId),
-      approval_id: String(approvalId),
-    });
-    return await apiClient.post(`/api/applications/?${params.toString()}`);
+    return await apiClient.post('/api/applications/', null, { params: { business_id: businessId, approval_id: approvalId } });
   },
-
-  /**
-   * Check application field completion percentage
-   * Backend endpoint: POST /api/applications/{application_id}/check
-   */
+  async listApplications(businessId) {
+    const data = await apiClient.get('/api/applications/', { params: businessId ? { business_id: businessId } : {} });
+    return data.applications || [];
+  },
+  async getApplication(applicationId) {
+    return await apiClient.get(`/api/applications/${applicationId}`);
+  },
   async checkApplication(applicationId) {
     return await apiClient.post(`/api/applications/${applicationId}/check`);
   },
-
-  /**
-   * Validate application compliance requirements
-   * Backend endpoint: POST /api/applications/{application_id}/validate
-   */
   async validateApplication(applicationId) {
     return await apiClient.post(`/api/applications/${applicationId}/validate`);
   },
-
-  /**
-   * Get current application status, field count, and document count
-   * Backend endpoint: GET /api/applications/{application_id}/status
-   */
   async getApplicationStatus(applicationId) {
     return await apiClient.get(`/api/applications/${applicationId}/status`);
   },
-
-  /**
-   * Submit application to authority (validates required fields and verified documents)
-   * Backend endpoint: POST /api/applications/{application_id}/submit
-   */
-  async submitApplication(applicationId) {
-    return await apiClient.post(`/api/applications/${applicationId}/submit`);
+  async submitApplication(applicationId, payload = {}) {
+    return await apiClient.post(`/api/applications/${applicationId}/submit`, payload);
+  },
+  async syncApplicationStatus(applicationId) {
+    return await apiClient.post(`/api/applications/${applicationId}/sync-status`);
+  },
+  async getApplicationHistory(applicationId) {
+    return await apiClient.get(`/api/applications/${applicationId}/history`);
+  },
+  async getApplicationDossier(applicationId) {
+    return await apiClient.get(`/api/applications/${applicationId}/dossier`);
   },
 };

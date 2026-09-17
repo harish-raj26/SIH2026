@@ -25,6 +25,7 @@ import { SearchPage } from './pages/search/SearchPage';
 import { OfficerPortalPage } from './pages/officer/OfficerPortalPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { CompliancePage } from './pages/compliance/CompliancePage';
 
 import { USER_ROLES } from './utils/constants';
 
@@ -59,6 +60,7 @@ function App() {
                   <Route path="/applications/new" element={<ApplicationWizardPage />} />
                   <Route path="/applications/:id" element={<ApplicationDetailsPage />} />
                   <Route path="/documents" element={<DocumentsHubPage />} />
+                  <Route path="/compliance" element={<CompliancePage />} />
                   <Route path="/ai-assistant" element={<AiAssistantPage />} />
                   <Route path="/search" element={<SearchPage />} />
 

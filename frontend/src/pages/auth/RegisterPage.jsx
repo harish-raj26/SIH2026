@@ -40,7 +40,7 @@ export function RegisterPage() {
     setError('');
     try {
       await register(form);
-      showSuccess('Account registered successfully! Welcome to BizClear AI.', 'Account Created');
+      showSuccess('Account registered successfully! Welcome to Byte Forge.', 'Account Created');
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -56,7 +56,7 @@ export function RegisterPage() {
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-xl">Create Enterprise Account</CardTitle>
           <CardDescription>
-            Join BizClear AI to manage statutory clearances and compliance intelligence.
+            Join Byte Forge to manage statutory clearances and compliance intelligence.
           </CardDescription>
         </CardHeader>
 

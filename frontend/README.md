@@ -1,6 +1,6 @@
-# BizClear AI — Frontend Web Application
+# Byte Forge — Frontend Web Application
 
-Modern, production-grade React + Vite + Tailwind CSS frontend interface for the **BizClear AI** regulatory compliance, statutory approval discovery, and automated clearance platform.
+Modern, production-grade React + Vite + Tailwind CSS frontend interface for the **Byte Forge** regulatory compliance, statutory approval discovery, and automated clearance platform.
 
 ---
 
@@ -96,7 +96,7 @@ frontend/
 You can switch between user roles instantly from the Navbar / Profile menu or login page:
 1. **Applicant**: `rajesh@enterprise.com` (Creates businesses, runs discovery, submits clearance applications)
 2. **Compliance Officer**: `sunita.officer@gov.in` (Access to the Officer Audit Portal and compliance oversight)
-3. **Administrator**: `admin@bizclear.ai` (Full platform administration)
+3. **Administrator**: `admin@byteforge.ai` (Full platform administration)
 
 ---
 

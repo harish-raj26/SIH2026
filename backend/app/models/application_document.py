@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 
 from app.database import Base
 
@@ -40,6 +40,26 @@ class ApplicationDocument(Base):
         nullable=True
     )
 
+    file_hash = Column(
+        String,
+        nullable=True
+    )
+
+    file_size = Column(
+        Integer,
+        nullable=True
+    )
+
+    expiry_date = Column(
+        String,
+        nullable=True
+    )
+
+    verified_at = Column(
+        DateTime,
+        nullable=True
+    )
+
     status = Column(
         String,
         default="Missing",
@@ -50,8 +70,9 @@ class ApplicationDocument(Base):
         String,
         nullable=True
     )
+
     requirement_type = Column(
         String,
         default="document",
         nullable=False
-)
+    )

@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Bot,
   Search,
+  Bell,
   Settings,
   ShieldAlert,
   X,
@@ -64,6 +65,12 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }) {
       badge: 'RAG',
       badgeDark: true,
     },
+    {
+      to: '/compliance',
+      label: 'Compliance Lifecycle',
+      icon: Bell,
+      badge: null,
+    },
   ];
 
   if (isOfficer || isAdmin) {
@@ -88,9 +95,9 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }) {
       <div>
         {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#E5EAE8] lg:hidden bg-white">
-          <span className="text-sm font-bold text-[#0A4D46]">
-            BizClear AI
-          </span>
+          <div className="flex items-center gap-2">
+            <img src="/logo-cropped.png" alt="Byte Forge" className="h-7 w-auto object-contain" />
+          </div>
           <button
             type="button"
             onClick={onCloseMobile}
@@ -155,7 +162,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }) {
       <div className="p-3 m-3 rounded-xl bg-white border border-[#E5EAE8] space-y-1 shadow-2xs">
         <div className="flex items-center gap-1.5 text-[#0A4D46]">
           <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#006B68]" />
-          <span className="text-xs font-bold text-[#0A4D46]">BizClear AI Engine</span>
+          <span className="text-xs font-bold text-[#0A4D46]">Byte Forge Engine</span>
         </div>
         <p className="text-[10px] text-[#66757A] leading-relaxed">
           Statutory discovery powered by Google Gemini and Regulatory RAG index.

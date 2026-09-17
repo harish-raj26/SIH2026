@@ -71,6 +71,28 @@ export function BusinessProvider({ children }) {
     }
   };
 
+  const deleteBusiness = async (id, name = 'Enterprise') => {
+    try {
+      await businessService.deleteBusiness(id);
+      showSuccess(`Enterprise "${name}" and its associated records have been deleted.`, 'Enterprise Deleted');
+      await loadBusinesses();
+    } catch (err) {
+      showError(err.message || 'Failed to delete enterprise', 'Delete Failed');
+      throw err;
+    }
+  };
+
+  const clearAllBusinesses = async () => {
+    try {
+      await businessService.clearAllBusinesses();
+      showSuccess('All business entities cleared successfully.', 'Directory Cleared');
+      await loadBusinesses();
+    } catch (err) {
+      showError(err.message || 'Failed to clear all enterprises', 'Clear Failed');
+      throw err;
+    }
+  };
+
   return (
     <BusinessContext.Provider
       value={{
@@ -80,6 +102,8 @@ export function BusinessProvider({ children }) {
         error,
         selectBusiness,
         createBusiness,
+        deleteBusiness,
+        clearAllBusinesses,
         refreshBusinesses: loadBusinesses,
         hasBusinesses: businesses.length > 0,
       }}

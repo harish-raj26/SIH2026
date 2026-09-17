@@ -1,6 +1,6 @@
-# BizClear AI — Frontend to Backend API Integration Documentation
+# Byte Forge — Frontend to Backend API Integration Documentation
 
-This document specifies the exact mapping between the **BizClear AI Frontend** and the existing **FastAPI Backend**.
+This document specifies the exact mapping between the **Byte Forge Frontend** and the existing **FastAPI Backend**.
 
 ---
 
@@ -14,7 +14,7 @@ This document specifies the exact mapping between the **BizClear AI Frontend** a
 - **Response Format**:
   ```json
   {
-    "message": "BizClear AI backend is running",
+    "message": "Byte Forge backend is running",
     "status": "online"
   }
   ```
@@ -32,7 +32,7 @@ This document specifies the exact mapping between the **BizClear AI Frontend** a
   ```json
   {
     "status": "healthy",
-    "service": "BizClear AI API"
+    "service": "Byte Forge API"
   }
   ```
 - **Authentication**: Public

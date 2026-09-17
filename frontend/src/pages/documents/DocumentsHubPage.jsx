@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useBusiness } from '../../context/BusinessContext';
 import { useNotification } from '../../context/NotificationContext';
 import { documentService } from '../../services/documentService';
+import { applicationService } from '../../services/applicationService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -31,7 +32,10 @@ export function DocumentsHubPage() {
     if (!activeBusiness?.id) return;
     setLoading(true);
     try {
-      const data = await documentService.getDocuments(1);
+      const applications = await applicationService.listApplications(activeBusiness.id);
+      const applicationId = applications?.[0]?.id;
+      if (!applicationId) { setDocuments([]); return; }
+      const data = await documentService.getDocuments(applicationId);
       setDocuments(data.documents || []);
     } catch (err) {
       console.warn('Could not load documents hub:', err.message);

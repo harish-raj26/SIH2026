@@ -8,7 +8,7 @@ export function NotificationProvider({ children }) {
     {
       id: 'notif_1',
       type: 'info',
-      title: 'Welcome to BizClear AI',
+      title: 'Welcome to Byte Forge',
       message: 'Explore automated regulatory compliance and statutory roadmaps for your enterprise.',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
       read: false,
@@ -18,7 +18,7 @@ export function NotificationProvider({ children }) {
       id: 'notif_2',
       type: 'success',
       title: 'FastAPI Backend Online',
-      message: 'Connected to BizClear AI backend service at http://localhost:8000.',
+      message: 'Connected to Byte Forge backend service at http://localhost:8000.',
       timestamp: new Date(Date.now() - 1800000).toISOString(),
       read: false,
       link: '/dashboard',

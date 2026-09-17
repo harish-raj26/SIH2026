@@ -1,372 +1,141 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from datetime import datetime, timezone
+import hashlib
+from pathlib import Path
+import shutil
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.application_field import ApplicationField
 from app.models.application import Application
 from app.models.application_document import ApplicationDocument
 from app.models.approval_requirement import ApprovalRequirement
 from app.models.business import Business
 from app.ai.service import ai_service
-from app.rag.service import rag_service 
-import os
-import shutil
+from app.rag.service import rag_service
+from app.government_integrations.registry import get_adapter_for_approval, get_adapter_by_service_code
+from app.services.field_mapping import field_mapping_service
+
+router = APIRouter(prefix="/api/application-documents", tags=["Application Documents"])
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads"
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".txt"}
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
-router = APIRouter(
-    prefix="/api/application-documents",
-    tags=["Application Documents"]
-)
+def serialize(doc: ApplicationDocument):
+    return {
+        "id": doc.id,
+        "application_id": doc.application_id,
+        "document_name": doc.document_name,
+        "document_type": doc.document_type,
+        "required": doc.required,
+        "file_path": doc.file_path,
+        "file_hash": doc.file_hash,
+        "file_size": doc.file_size,
+        "expiry_date": doc.expiry_date,
+        "verified_at": doc.verified_at.isoformat() if doc.verified_at else None,
+        "status": doc.status,
+        "verification_notes": doc.verification_notes,
+    }
 
 
 @router.post("/{application_id}/generate")
-def generate_required_documents(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
+def generate_required_documents(application_id: int, db: Session = Depends(get_db)):
+    """
+    Generate mandatory document attachment checklist from the authoritative government adapter.
+    """
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(404, "Application not found")
+    business = db.query(Business).filter(Business.id == app.business_id).first()
+    approval = db.query(ApprovalRequirement).filter(ApprovalRequirement.id == app.approval_id).first()
+    if not business or not approval:
+        raise HTTPException(404, "Application context not found")
 
-    application = (
-        db.query(Application)
-        .filter(
-            Application.id == application_id
-        )
-        .first()
-    )
+    adapter = field_mapping_service.get_adapter_for_app(app, db)
+    created = []
 
-    if not application:
-        raise HTTPException(
-            status_code=404,
-            detail="Application not found"
-        )
-
-    business = (
-        db.query(Business)
-        .filter(
-            Business.id == application.business_id
-        )
-        .first()
-    )
-
-    if not business:
-        raise HTTPException(
-            status_code=404,
-            detail="Business not found"
-        )
-
-    approval = (
-        db.query(ApprovalRequirement)
-        .filter(
-            ApprovalRequirement.id == application.approval_id
-        )
-        .first()
-    )
-
-    if not approval:
-        raise HTTPException(
-            status_code=404,
-            detail="Approval requirement not found"
-        )
-
-    evidence_query = (
-        f"{approval.approval_name} "
-        f"{approval.authority} "
-        f"{approval.category} "
-        f"{approval.reason} "
-        f"required documents"
-    )
-
-    regulatory_evidence = rag_service.search(
-        evidence_query,
-        top_k=5
-    )
-    print("========== REGULATORY EVIDENCE ==========")
-    print(regulatory_evidence)
-    print("==========================================")
-
-    prompt = """
-You are BizClear, an AI regulatory compliance assistant.
-
-Your task is to identify documents and information needed
-for a business approval application.
-
-IMPORTANT:
-
-The REGULATORY EVIDENCE is the primary source.
-
-Do not invent requirements that are not supported by
-the regulatory evidence.
-
-You must distinguish between:
-
-1. MANDATORY DOCUMENTS
-   These are documents that the regulatory evidence indicates
-   are required for the approval.
-
-2. SUPPORTING INFORMATION
-   These are useful documents or information that may help
-   the application but are not clearly mandatory.
-
-Return ONLY a JSON array.
-
-Do NOT use markdown.
-Do NOT use ```json.
-Do NOT add explanations.
-
-Use exactly this structure:
-
-[
-    {
-        "document_name": "Example Document",
-        "document_type": "certificate",
-        "required": true
-    }
-]
-
-Rules:
-
-1. required = true ONLY when the regulatory evidence supports
-   that the document is mandatory or required.
-
-2. required = false when the item is supporting information
-   or the evidence does not establish that it is mandatory.
-
-3. Do not invent documents.
-
-4. Use the regulatory evidence as the primary source.
-
-5. Keep document names clear and understandable.
-
-6. document_type should describe the type of document.
-
-7. required must be either true or false.
-
-8. Return ONLY valid JSON.
-"""
-
-    prompt = prompt + f"""
-
-BUSINESS:
-{business.name}
-
-APPROVAL:
-{approval.approval_name}
-
-AUTHORITY:
-{approval.authority}
-
-CATEGORY:
-{approval.category}
-
-REASON:
-{approval.reason}
-
-REGULATORY EVIDENCE:
-{regulatory_evidence}
-"""
-
-    response = ai_service.client.models.generate_content(
-        model=ai_service.model,
-        contents=prompt
-    )
-
-    raw_response = response.text.strip()
-
-    print("GEMINI DOCUMENT RESPONSE:")
-    print(raw_response)
-
-    import json
-
-    if raw_response.startswith("```"):
-        raw_response = raw_response.replace(
-            "```json",
-            ""
-        ).replace(
-            "```",
-            ""
-        ).strip()
-
-    try:
-        documents_data = json.loads(raw_response)
-
-    except json.JSONDecodeError:
-
-        raise HTTPException(
-            status_code=500,
-            detail="AI returned invalid document structure"
-        )
-
-    if not isinstance(documents_data, list):
-
-        raise HTTPException(
-            status_code=500,
-            detail="AI document response must be a JSON array"
-    )
-
-    created_documents = []
-
-    for document_data in documents_data:
-
-        document_name = document_data.get(
-            "document_name"
-        )
-
-        if not document_name:
-            continue
-
-        existing = (
-            db.query(ApplicationDocument)
-            .filter(
+    if adapter:
+        # Load official statutory document definitions
+        doc_defs = adapter.get_document_definitions()
+        for d_def in doc_defs:
+            doc = db.query(ApplicationDocument).filter(
                 ApplicationDocument.application_id == application_id,
-                ApplicationDocument.document_name == document_name
-            )
-            .first()
+                ApplicationDocument.document_name == d_def.document_name,
+            ).first()
+
+            if not doc:
+                doc = ApplicationDocument(
+                    application_id=application_id,
+                    document_name=d_def.document_name,
+                    document_type=d_def.document_type,
+                    required=d_def.required,
+                    status="Missing",
+                    verification_notes=d_def.description,
+                )
+                db.add(doc)
+            else:
+                doc.required = d_def.required
+                doc.document_type = d_def.document_type
+            created.append(doc)
+        db.commit()
+        for d in created:
+            db.refresh(d)
+    else:
+        # Fallback to AI RAG checklist if no adapter available
+        evidence = rag_service.search(
+            f"{approval.approval_name} {approval.authority} {approval.category} required documents",
+            top_k=5,
         )
-
-        if existing:
-
-            existing.required = document_data.get(
-                "required",
-                False
-            )
-
-            existing.document_type = document_data.get(
-                "document_type",
-                existing.document_type
-            )
-
-            created_documents.append(existing)
-            continue
-
-        document = ApplicationDocument(
-            application_id=application_id,
-            document_name=document_name,
-            document_type=document_data.get(
-                "document_type",
-                "document"
-            ),
-            required=document_data.get(
-                "required",
-                True
-            ),
-            status="Missing"
-        )
-
-        db.add(document)
-        created_documents.append(document)
-
-    db.commit()
-
-    for document in created_documents:
-        db.refresh(document)
+        data = ai_service.generate_documents(business, approval, evidence)
+        for item in data:
+            name = str(item.get("document_name", "")).strip()
+            if not name:
+                continue
+            doc = db.query(ApplicationDocument).filter(
+                ApplicationDocument.application_id == application_id,
+                ApplicationDocument.document_name == name,
+            ).first()
+            if not doc:
+                doc = ApplicationDocument(
+                    application_id=application_id,
+                    document_name=name,
+                    document_type=item.get("document_type", "document"),
+                    required=bool(item.get("required", False)),
+                    status="Missing",
+                )
+                db.add(doc)
+            else:
+                doc.required = bool(item.get("required", doc.required))
+                doc.document_type = item.get("document_type", doc.document_type)
+            created.append(doc)
+        db.commit()
+        for doc in created:
+            db.refresh(doc)
 
     return {
-        "regulatory_evidence": regulatory_evidence,
-        
-        "message": "Required documents generated successfully",
+        "message": "Statutory application document checklist generated successfully",
         "application_id": application_id,
-        "approval": approval.approval_name,
-        "document_count": len(created_documents),
-        "documents": [
-            {
-                "id": document.id,
-                "document_name": document.document_name,
-                "document_type": document.document_type,
-                "required": document.required,
-                "status": document.status,
-                "verification_notes": document.verification_notes
-            }
-            for document in created_documents
-        ]
+        "government_service": adapter.service_name if adapter else None,
+        "document_count": len(created),
+        "documents": [serialize(d) for d in created],
     }
 
 
 @router.get("/{application_id}")
-def get_application_documents(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
-
-    application = (
-        db.query(Application)
-        .filter(
-            Application.id == application_id
-        )
-        .first()
-    )
-
-    if not application:
-        raise HTTPException(
-            status_code=404,
-            detail="Application not found"
-        )
-
-    documents = (
+def get_application_documents(application_id: int, db: Session = Depends(get_db)):
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(404, "Application not found")
+    docs = (
         db.query(ApplicationDocument)
-        .filter(
-            ApplicationDocument.application_id == application_id
-        )
+        .filter(ApplicationDocument.application_id == application_id)
+        .order_by(ApplicationDocument.id.asc())
         .all()
     )
-
     return {
         "application_id": application_id,
-        "document_count": len(documents),
-        "documents": [
-            {
-                "id": document.id,
-                "document_name": document.document_name,
-                "document_type": document.document_type,
-                "required": document.required,
-                "file_path": document.file_path,
-                "status": document.status,
-                "verification_notes": document.verification_notes
-            }
-            for document in documents
-        ]
-    }
-@router.get("/{application_id}")
-def get_application_documents(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
-
-    application = (
-        db.query(Application)
-        .filter(
-            Application.id == application_id
-        )
-        .first()
-    )
-
-    if not application:
-        raise HTTPException(
-            status_code=404,
-            detail="Application not found"
-        )
-
-    documents = (
-        db.query(ApplicationDocument)
-        .filter(
-            ApplicationDocument.application_id == application_id
-        )
-        .all()
-    )
-
-    return {
-        "application_id": application_id,
-        "document_count": len(documents),
-        "documents": [
-            {
-                "id": document.id,
-                "document_name": document.document_name,
-                "document_type": document.document_type,
-                "required": document.required,
-                "file_path": document.file_path,
-                "status": document.status,
-                "verification_notes": document.verification_notes
-            }
-            for document in documents
-        ]
+        "document_count": len(docs),
+        "documents": [serialize(d) for d in docs],
     }
 
 
@@ -374,193 +143,88 @@ def get_application_documents(
 def upload_application_document(
     document_id: int,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
+    """
+    Secure file upload handling with SHA-256 integrity hashing and size verification.
+    """
+    doc = db.query(ApplicationDocument).filter(ApplicationDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(404, "Application document not found")
 
-    document = (
-        db.query(ApplicationDocument)
-        .filter(
-            ApplicationDocument.id == document_id
-        )
-        .first()
-    )
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(400, f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}")
 
-    if not document:
-        raise HTTPException(
-            status_code=404,
-            detail="Application document not found"
-        )
+    safe_name = Path(file.filename or "document").name
+    target_dir = UPLOAD_DIR / str(doc.application_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / f"{doc.id}_{safe_name}"
 
-    upload_directory = "uploads"
-
-    os.makedirs(
-        upload_directory,
-        exist_ok=True
-    )
-
-    file_path = os.path.join(
-        upload_directory,
-        f"{document_id}_{file.filename}"
-    )
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
-
-    document.file_path = file_path
-    document.status = "Uploaded"
-
-    db.commit()
-    db.refresh(document)
-
-    return {
-        "message": "Document uploaded successfully",
-        "document": {
-            "id": document.id,
-            "document_name": document.document_name,
-            "document_type": document.document_type,
-            "required": document.required,
-            "file_path": document.file_path,
-            "status": document.status,
-            "verification_notes": document.verification_notes
-        }
-    }
-@router.post("/{document_id}/verify")
-def verify_application_document(
-    document_id: int,
-    db: Session = Depends(get_db)
-):
-
-    document = (
-        db.query(ApplicationDocument)
-        .filter(
-            ApplicationDocument.id == document_id
-        )
-        .first()
-    )
-
-    if not document:
-        raise HTTPException(
-            status_code=404,
-            detail="Application document not found"
-        )
-
-    if not document.file_path:
-        raise HTTPException(
-            status_code=400,
-            detail="Document has not been uploaded"
-        )
-
-    if not os.path.exists(document.file_path):
-        raise HTTPException(
-            status_code=404,
-            detail="Uploaded file not found"
-        )
-
-    document.status = "Verifying"
-
-    db.commit()
-
-    prompt = f"""
-You are BizClear, an AI regulatory compliance assistant.
-
-Verify whether the uploaded document appears suitable
-for the following required document.
-
-Required document:
-{document.document_name}
-
-Document type:
-{document.document_type}
-
-Analyze the uploaded document and return ONLY valid JSON.
-
-Use exactly this structure:
-
-{{
-    "verified": true,
-    "verification_notes": "Document appears to satisfy the requirement."
-}}
-
-Rules:
-
-1. verified must be true or false.
-2. Do not invent information.
-3. If the document cannot be verified, return false.
-4. verification_notes must briefly explain the result.
-5. Return ONLY JSON.
-"""
+    size = 0
+    hasher = hashlib.sha256()
 
     try:
+        with target.open("wb") as buffer:
+            while chunk := file.file.read(1024 * 1024):
+                size += len(chunk)
+                if size > MAX_FILE_SIZE:
+                    target.unlink(missing_ok=True)
+                    raise HTTPException(413, "File exceeds the 10 MB size limit.")
+                hasher.update(chunk)
+                buffer.write(chunk)
+    finally:
+        file.file.close()
 
-        with open(
-            document.file_path,
-            "rb"
-        ) as uploaded_file:
+    doc.file_path = str(target)
+    doc.file_hash = hasher.hexdigest()
+    doc.file_size = size
+    doc.status = "Uploaded"
+    doc.verification_notes = f"Uploaded on {datetime.now(timezone.utc).strftime('%d-%b-%Y %H:%M UTC')}. Hash: {doc.file_hash[:12]}..."
 
-            uploaded_data = uploaded_file.read()
+    db.commit()
+    db.refresh(doc)
+    return {"message": "Document uploaded successfully", "document": serialize(doc)}
 
-        response = ai_service.client.models.generate_content(
-            model=ai_service.model,
-            contents=[
-                prompt,
-                uploaded_data
-            ]
+
+@router.post("/{document_id}/verify")
+def verify_application_document(document_id: int, db: Session = Depends(get_db)):
+    """
+    Verify uploaded document consistency and statutory checklist criteria.
+    """
+    doc = db.query(ApplicationDocument).filter(ApplicationDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(404, "Application document not found")
+    if not doc.file_path or not Path(doc.file_path).exists():
+        raise HTTPException(400, "Document has not been uploaded yet")
+
+    doc.status = "Verifying"
+    db.commit()
+
+    try:
+        content = Path(doc.file_path).read_bytes()[:200000]
+        result = ai_service.verify_document(
+            doc.document_name,
+            doc.document_type,
+            Path(doc.file_path).name,
+            content,
         )
-
-        raw_response = response.text.strip()
-
-        import json
-
-        if raw_response.startswith("```"):
-            raw_response = (
-                raw_response
-                .replace("```json", "")
-                .replace("```", "")
-                .strip()
-            )
-
-        verification = json.loads(raw_response)
-
-        verified = verification.get(
-            "verified",
-            False
-        )
-
-        notes = verification.get(
+        verified = bool(result.get("verified"))
+        doc.status = "Verified" if verified else "Rejected"
+        doc.verified_at = datetime.now(timezone.utc)
+        doc.verification_notes = result.get(
             "verification_notes",
-            "Document could not be verified."
+            "Document matches statutory filing requirements.",
         )
-
-        if verified:
-            document.status = "Verified"
-        else:
-            document.status = "Rejected"
-
-        document.verification_notes = notes
-
         db.commit()
-        db.refresh(document)
-
+        db.refresh(doc)
         return {
-            "message": "Document verification completed",
-            "document": {
-                "id": document.id,
-                "document_name": document.document_name,
-                "status": document.status,
-                "verification_notes": document.verification_notes
-            }
+            "message": "Document statutory checklist verification completed",
+            "document": serialize(doc),
+            "verified": verified,
         }
-
-    except Exception as e:
-
-        document.status = "Uploaded"
-
+    except Exception as exc:
+        doc.status = "Uploaded"
+        doc.verification_notes = f"Verification note: {exc}"
         db.commit()
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Document verification failed: {str(e)}"
-        )
+        raise HTTPException(500, f"Document verification process error: {exc}")

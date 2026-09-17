@@ -8,14 +8,14 @@ import { documentService } from '../../services/documentService';
 import { approvalService } from '../../services/approvalService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Timeline } from '../../components/common/Timeline';
 import { FileDropzone } from '../../components/forms/FileDropzone';
 import { AISuggestionCard } from '../../components/ai/AISuggestionCard';
 import { BusinessModal } from '../../components/forms/BusinessModal';
+import { ApplicationReviewTable } from '../../components/applications/ApplicationReviewTable';
+import { GovernmentSubmissionModal } from '../../components/applications/GovernmentSubmissionModal';
 import {
   Building2,
   Sparkles,
@@ -28,6 +28,7 @@ import {
   Plus,
   ShieldCheck,
   FileCheck2,
+  ExternalLink,
 } from 'lucide-react';
 
 export function ApplicationWizardPage() {
@@ -39,6 +40,7 @@ export function ApplicationWizardPage() {
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
+  const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState(
     searchParams.get('business_id') || activeBusiness?.id || ''
   );
@@ -103,7 +105,7 @@ export function ApplicationWizardPage() {
       const app = res.application;
       setApplicationId(app.id);
       setApplicationData(app);
-      showSuccess(`Application draft #${app.id} created successfully!`, 'Application Initialized');
+      showSuccess(`Application draft #${app.id} initialized with official statutory schema!`, 'Application Initialized');
 
       // Auto-fetch fields
       await fetchAndGenerateFields(app.id);
@@ -115,26 +117,26 @@ export function ApplicationWizardPage() {
     }
   };
 
-  // Step 2: Fetch and generate dynamic fields
+  // Step 2: Fetch and generate dynamic fields with deterministic mapping
   const fetchAndGenerateFields = async (appId) => {
     setGeneratingFields(true);
     try {
-      const existing = await fieldService.getFields(appId);
+      const res = await fieldService.generateFields(appId);
       const normalizeFields = (items = []) =>
-  items.map((field) => ({
-    ...field,
-    field_value: field.field_value ?? field.value ?? "",
-    validation_error: null,
-  }));
+        items.map((field) => ({
+          ...field,
+          field_value: field.field_value ?? field.value ?? '',
+          validation_error: field.validation_error || null,
+        }));
 
-if (existing?.fields && existing.fields.length > 0) {
-  setFields(normalizeFields(existing.fields));
-} else {
-  const generated = await fieldService.generateFields(appId);
-  setFields(normalizeFields(generated.fields));
-}
+      if (res?.fields && res.fields.length > 0) {
+        setFields(normalizeFields(res.fields));
+      } else {
+        const existing = await fieldService.getFields(appId);
+        setFields(normalizeFields(existing.fields || []));
+      }
     } catch (err) {
-      showError(err.message || 'Failed to generate form fields', 'Fields Error');
+      showError(err.message || 'Failed to derive statutory form fields', 'Fields Error');
     } finally {
       setGeneratingFields(false);
     }
@@ -142,134 +144,101 @@ if (existing?.fields && existing.fields.length > 0) {
 
   // Field change
   const handleFieldChange = (fieldId, value) => {
-  setFields((prev) =>
-    prev.map((f) =>
-      f.id === fieldId
-        ? {
-            ...f,
-            field_value: value,
-            status: value ? "Completed" : "Pending",
-          }
-        : f
-    )
-  );
-};
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id === fieldId
+          ? {
+              ...f,
+              field_value: value,
+              value: value,
+              source: 'user_input',
+              status: value ? 'Completed' : 'Pending',
+            }
+          : f
+      )
+    );
+  };
 
-  // Field blur / save
+  // Field blur / save with live validation
   const handleFieldBlur = async (fieldId, val) => {
-  try {
-    await fieldService.updateField(fieldId, val);
+    try {
+      const res = await fieldService.updateField(fieldId, val);
+      const updatedField = res.field;
 
-    setFields((prev) =>
-      prev.map((f) =>
-        f.id === fieldId
-          ? {
-              ...f,
-              field_value: val,
-              status: val ? 'Completed' : 'Pending',
-              validation_error: null,
-            }
-          : f
-      )
-    );
-  } catch (err) {
-    const message =
-      err.message || 'This information is not appropriate for this field.';
+      setFields((prev) =>
+        prev.map((f) =>
+          f.id === fieldId
+            ? {
+                ...f,
+                field_value: updatedField.value ?? val,
+                value: updatedField.value ?? val,
+                source: updatedField.source || 'user_input',
+                status: updatedField.status || (val ? 'Completed' : 'Pending'),
+                validation_error: updatedField.validation_error || null,
+              }
+            : f
+        )
+      );
 
-    setFields((prev) =>
-      prev.map((f) =>
-        f.id === fieldId
-          ? {
-              ...f,
-              status: 'Pending',
-              validation_error: message,
-            }
-          : f
-      )
-    );
-
-    showError(message, 'Invalid Information');
-  }
-};
+      if (updatedField.validation_error) {
+        showWarning(updatedField.validation_error, 'Validation Note');
+      }
+    } catch (err) {
+      const message = err.message || 'Statutory validation error for this field.';
+      setFields((prev) =>
+        prev.map((f) =>
+          f.id === fieldId
+            ? {
+                ...f,
+                status: 'Pending',
+                validation_error: message,
+              }
+            : f
+        )
+      );
+      showError(message, 'Invalid Information');
+    }
+  };
 
   // AI Field Suggestion
   const handleSuggestField = async (fieldId) => {
-  setSuggestingFieldId(fieldId);
-
-  try {
-    const res = await fieldService.suggestField(fieldId);
-
-    const updated = res.field;
-    const suggestion = updated.ai_suggestion?.trim();
-
-    if (
-      !suggestion ||
-      suggestion.toLowerCase() === "information not available"
-    ) {
-      showError(
-        "AI could not find suitable information for this field. Please enter it manually.",
-        "AI Autofill"
-      );
-
-      setFields((prev) =>
-        prev.map((f) =>
-          f.id === fieldId
-            ? { ...f, ai_suggestion: null }
-            : f
-        )
-      );
-
-      return;
-    }
-
-    const acceptRes = await fieldService.acceptSuggestion(fieldId);
-    const accepted = acceptRes.field;
-
-    setFields((prev) =>
-      prev.map((f) =>
-        f.id === fieldId
-          ? {
-              ...f,
-              field_value: accepted.value || suggestion,
-              ai_suggestion: null,
-              status: accepted.status || "Completed",
-            }
-          : f
-      )
-    );
-
-    showSuccess(
-      "AI Autofill completed using verified business information",
-      "AI Autofill"
-    );
-  } catch (err) {
-    showError(
-      err.message || "Failed to generate AI autofill",
-      "AI Autofill Error"
-    );
-  } finally {
-    setSuggestingFieldId(null);
-  }
-};
-
-  // Accept AI Field Suggestion
-  const handleAcceptSuggestion = async (fieldId) => {
-    setAcceptingFieldId(fieldId);
+    setSuggestingFieldId(fieldId);
     try {
-      const res = await fieldService.acceptSuggestion(fieldId);
+      const res = await fieldService.suggestField(fieldId);
       const updated = res.field;
+      const suggestion = updated.ai_suggestion?.trim();
+
+      if (!suggestion || suggestion.toLowerCase() === 'information not available') {
+        showError(
+          'AI could not find suitable verified information for this field. Please enter it manually.',
+          'AI Suggestion'
+        );
+        return;
+      }
+
+      const acceptRes = await fieldService.acceptSuggestion(fieldId);
+      const accepted = acceptRes.field;
+
       setFields((prev) =>
         prev.map((f) =>
           f.id === fieldId
-            ? { ...f, field_value: updated.field_value, status: 'Completed', ai_suggestion: null }
+            ? {
+                ...f,
+                field_value: accepted.value || suggestion,
+                value: accepted.value || suggestion,
+                ai_suggestion: null,
+                status: accepted.status || 'Completed',
+                validation_error: accepted.validation_error || null,
+              }
             : f
         )
       );
-      showSuccess('Field updated with verified enterprise data', 'Suggestion Accepted');
+
+      showSuccess('Field auto-populated with enterprise data', 'Autofill Complete');
     } catch (err) {
-      showError(err.message || 'Failed to accept suggestion', 'Error');
+      showError(err.message || 'Failed to generate suggestion', 'Suggestion Error');
     } finally {
-      setAcceptingFieldId(null);
+      setSuggestingFieldId(null);
     }
   };
 
@@ -284,16 +253,16 @@ if (existing?.fields && existing.fields.length > 0) {
 
     setGeneratingDocs(true);
     try {
-      const existing = await documentService.getDocuments(applicationId);
-      if (existing?.documents && existing.documents.length > 0) {
-        setDocuments(existing.documents);
+      const res = await documentService.generateDocuments(applicationId);
+      if (res?.documents && res.documents.length > 0) {
+        setDocuments(res.documents);
       } else {
-        const generated = await documentService.generateDocuments(applicationId);
-        setDocuments(generated.documents || []);
+        const existing = await documentService.getDocuments(applicationId);
+        setDocuments(existing.documents || []);
       }
       setCurrentStep(3);
     } catch (err) {
-      showError(err.message || 'Failed to generate required documents list', 'Documents Error');
+      showError(err.message || 'Failed to generate statutory documents checklist', 'Documents Error');
     } finally {
       setGeneratingDocs(false);
     }
@@ -308,7 +277,7 @@ if (existing?.fields && existing.fields.length > 0) {
       setDocuments((prev) =>
         prev.map((d) => (d.id === docId ? { ...d, ...updated, status: 'Uploaded' } : d))
       );
-      showSuccess(`"${file.name}" uploaded successfully`, 'Upload Complete');
+      showSuccess(`"${file.name}" uploaded successfully with SHA-256 integrity hash`, 'Upload Complete');
     } catch (err) {
       showError(err.message || 'Document upload failed', 'Upload Error');
     } finally {
@@ -326,12 +295,12 @@ if (existing?.fields && existing.fields.length > 0) {
         prev.map((d) => (d.id === docId ? { ...d, ...updated } : d))
       );
       if (updated.status === 'Verified') {
-        showSuccess('Document verified as compliant with statutory checklist', 'AI Verified');
+        showSuccess('Document verified against statutory checklist criteria', 'Statutory Verified');
       } else {
-        showWarning('Document flagged discrepancies. Review notes.', 'Verification Note');
+        showWarning('Document flagged discrepancies. Review verification note.', 'Verification Note');
       }
     } catch (err) {
-      showError(err.message || 'AI document verification failed', 'Verification Error');
+      showError(err.message || 'Document inspection failed', 'Verification Error');
     } finally {
       setVerifyingDocId(null);
     }
@@ -357,22 +326,34 @@ if (existing?.fields && existing.fields.length > 0) {
       });
       setCurrentStep(5);
     } catch (err) {
-      showError(err.message || 'Compliance evaluation failed', 'Evaluation Error');
+      showError(err.message || 'Statutory evaluation failed', 'Evaluation Error');
     } finally {
       setCheckingCompliance(false);
     }
   };
 
-  // Step 6: Final Submission
-  const handleSubmitFinal = async () => {
+  // Open Submission Modal
+  const handleOpenSubmissionModal = () => {
+    setIsSubmissionModalOpen(true);
+  };
+
+  // Step 6: Final Submission Confirmed
+  const handleConfirmedSubmit = async (payload) => {
     setSubmittingApp(true);
     try {
-      const res = await applicationService.submitApplication(applicationId);
-      showSuccess(`Application #${applicationId} formally submitted!`, 'Submission Complete');
-      setApplicationData((prev) => ({ ...prev, status: res.status || 'Submitted' }));
+      const res = await applicationService.submitApplication(applicationId, payload);
+      showSuccess(res.message || `Application #${applicationId} recorded successfully!`, 'Submission Complete');
+      setApplicationData((prev) => ({
+        ...prev,
+        ...res.application,
+        government_app_id: res.government_app_id,
+        government_status: res.government_status,
+        status: res.application?.status || 'Submitted',
+      }));
+      setIsSubmissionModalOpen(false);
       setCurrentStep(6);
     } catch (err) {
-      showError(err.message || 'Application submission failed', 'Submission Error');
+      showError(err.message || 'Application submission could not be processed', 'Submission Error');
     } finally {
       setSubmittingApp(false);
     }
@@ -380,11 +361,11 @@ if (existing?.fields && existing.fields.length > 0) {
 
   const wizardSteps = [
     { id: 1, title: 'Target Approval', subtitle: 'Entity & permit selection' },
-    { id: 2, title: 'Form Fields', subtitle: 'Dynamic data entry' },
-    { id: 3, title: 'Documents', subtitle: 'Upload & AI verification' },
+    { id: 2, title: 'Form Fields', subtitle: 'Statutory disclosures' },
+    { id: 3, title: 'Documents', subtitle: 'Upload & verification' },
     { id: 4, title: 'Dossier Review', subtitle: 'Pre-submission audit' },
-    { id: 5, title: 'Compliance Check', subtitle: 'Rule validation' },
-    { id: 6, title: 'Confirmation', subtitle: 'Submission receipt' },
+    { id: 5, title: 'Compliance Check', subtitle: 'Strict statutory check' },
+    { id: 6, title: 'Confirmation', subtitle: 'Authoritative receipt' },
   ];
 
   const selectedBizObj = businesses.find((b) => b.id.toString() === selectedBusinessId.toString());
@@ -399,10 +380,10 @@ if (existing?.fields && existing.fields.length > 0) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#172126] tracking-tight">
-              Statutory Application Wizard
+              Statutory Application Processing
             </h1>
             <p className="text-xs sm:text-sm text-[#66757A]">
-              Step-by-step regulatory application workflow with dynamic AI form completion and document verification.
+              Authoritative government application processing pipeline with deterministic enterprise mapping, format validation, and verified reference capture.
             </p>
           </div>
 
@@ -426,7 +407,7 @@ if (existing?.fields && existing.fields.length > 0) {
       {currentStep === 1 && (
         <Card className="max-w-3xl mx-auto">
           <CardHeader>
-            <CardTitle>1. Select Enterprise & Statutory Permit</CardTitle>
+            <CardTitle>1. Select Enterprise & Regulatory Clearance</CardTitle>
             <CardDescription>
               Choose the enterprise entity and specific regulatory approval you are applying for.
             </CardDescription>
@@ -475,7 +456,7 @@ if (existing?.fields && existing.fields.length > 0) {
                   <option value="">-- Select Discovered Clearance Requirement --</option>
                   {approvalsList.map((a) => {
                     const aId = a.id || a.approval_id || a.step;
-                    const aName = a.name || a.approval;
+                    const aName = a.name || a.approval_name || a.approval;
                     return (
                       <option key={aId} value={aId}>
                         {aName} — {a.authority} ({a.priority || 'Statutory'} Priority)
@@ -490,7 +471,7 @@ if (existing?.fields && existing.fields.length > 0) {
               <div className="p-4 rounded-lg bg-[#E6F2F2] border border-[#BFE0DF] space-y-1 text-xs">
                 <p className="font-semibold text-[#003F3D]">Selected Clearance Scope:</p>
                 <p className="text-[#004F4D]">
-                  Applying for <strong>{selectedApprObj.name || selectedApprObj.approval}</strong> under{' '}
+                  Applying for <strong>{selectedApprObj.name || selectedApprObj.approval_name || selectedApprObj.approval}</strong> under{' '}
                   <strong>{selectedApprObj.authority}</strong> on behalf of{' '}
                   <strong>{selectedBizObj.name}</strong>.
                 </p>
@@ -507,25 +488,25 @@ if (existing?.fields && existing.fields.length > 0) {
               disabled={!selectedBusinessId || !selectedApprovalId}
               onClick={handleCreateOrResumeApp}
             >
-              Initialize Application Draft
+              Initialize Government Application
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* ================= STEP 2: DYNAMIC FORM FIELDS ================= */}
+      {/* ================= STEP 2: STATUTORY FORM FIELDS ================= */}
       {currentStep === 2 && (
         <Card className="max-w-4xl mx-auto">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>2. Statutory Form Fields & Information</CardTitle>
+                <CardTitle>2. Statutory Form Fields & Declarations</CardTitle>
                 <CardDescription>
-                  Enter mandatory regulatory disclosures. Use Gemini AI to derive verified values.
+                  Enter mandatory regulatory disclosures. BizClear auto-populates verified enterprise values.
                 </CardDescription>
               </div>
-              <span className="text-xs text-[#66757A]">
-                {fields.filter((f) => f.field_value).length} of {fields.length} Completed
+              <span className="text-xs font-semibold text-[#006B68]">
+                {fields.filter((f) => f.field_value && !f.validation_error).length} of {fields.length} Completed
               </span>
             </div>
           </CardHeader>
@@ -536,7 +517,7 @@ if (existing?.fields && existing.fields.length > 0) {
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <p className="text-xs font-semibold text-[#172126]">
-                  Generating statutory field schema from statutory regulations...
+                  Loading official statutory schema & auto-mapping enterprise data...
                 </p>
               </div>
             ) : fields.length === 0 ? (
@@ -547,7 +528,9 @@ if (existing?.fields && existing.fields.length > 0) {
               fields.map((field) => (
                 <div
                   key={field.id}
-                  className="p-4 rounded-lg border border-[#E2E8E7] bg-white space-y-2"
+                  className={`p-4 rounded-lg border bg-white space-y-2 transition-colors ${
+                    field.validation_error ? 'border-[#F8D7D7] bg-[#FFFBFB]' : 'border-[#E2E8E7]'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-0.5">
@@ -560,9 +543,19 @@ if (existing?.fields && existing.fields.length > 0) {
                             Required
                           </span>
                         )}
+                        {field.source === 'business_profile' && (
+                          <span className="text-[10px] text-[#0C6148] font-medium bg-[#E8F6F1] px-1.5 py-0.5 rounded border border-[#C2EAD9]">
+                            Auto-filled from Profile
+                          </span>
+                        )}
+                        {field.source === 'government_data' && (
+                          <span className="text-[10px] text-[#0369A1] font-medium bg-[#E0F2FE] px-1.5 py-0.5 rounded border border-[#BAE6FD]">
+                            Statutory Derived
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-[#66757A] capitalize">
-                        Data Type: {field.field_type || 'text'}
+                        Data Type: <span className="font-mono">{field.field_type || 'text'}</span>
                       </p>
                     </div>
 
@@ -574,7 +567,7 @@ if (existing?.fields && existing.fields.length > 0) {
                         loading={suggestingFieldId === field.id}
                         onClick={() => handleSuggestField(field.id)}
                       >
-                        AI Autofill
+                        AI Suggest
                       </Button>
                     </div>
                   </div>
@@ -585,13 +578,19 @@ if (existing?.fields && existing.fields.length > 0) {
                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
                     onBlur={(e) => handleFieldBlur(field.id, e.target.value)}
                     placeholder={`Enter ${field.field_name}...`}
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-[#E2E8E7] focus:border-[#006B68] focus:ring-2 focus:ring-[#006B68]/15"
+                    className={`w-full px-3 py-2 text-xs rounded-lg border focus:ring-2 ${
+                      field.validation_error
+                        ? 'border-[#E05252] focus:border-[#E05252] focus:ring-[#E05252]/15'
+                        : 'border-[#E2E8E7] focus:border-[#006B68] focus:ring-[#006B68]/15'
+                    }`}
                   />
+
                   {field.validation_error && (
-  <p className="mt-1 text-xs text-red-600">
-    {field.validation_error}
-  </p>
-)}
+                    <div className="flex items-center gap-1 text-[11px] text-[#C93D3D]">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{field.validation_error}</span>
+                    </div>
+                  )}
 
                   {field.ai_suggestion && (
                     <AISuggestionCard
@@ -632,12 +631,12 @@ if (existing?.fields && existing.fields.length > 0) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>3. Mandatory Documents & AI Inspection</CardTitle>
+                <CardTitle>3. Mandatory Documents & Statutory Evidence</CardTitle>
                 <CardDescription>
-                  Upload certified plans, licences, and affidavits. Gemini AI will inspect against regulatory criteria.
+                  Upload certified plans, licences, and affidavits matching departmental checklists.
                 </CardDescription>
               </div>
-              <span className="text-xs text-[#66757A]">
+              <span className="text-xs font-semibold text-[#006B68]">
                 {documents.filter((d) => d.status === 'Uploaded' || d.status === 'Verified').length} of{' '}
                 {documents.length} Uploaded
               </span>
@@ -687,11 +686,11 @@ if (existing?.fields && existing.fields.length > 0) {
           <CardHeader>
             <CardTitle>4. Application Dossier Review</CardTitle>
             <CardDescription>
-              Review the complete application packet before triggering rule compliance validation.
+              Comprehensive audit of all statutory fields, data sources, and document evidence before compliance checking.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-lg bg-[#F8FAF9] border border-[#E2E8E7] text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#F8FAF9] border border-[#E2E8E7] text-xs">
               <div>
                 <p className="text-[#66757A]">Applicant Enterprise:</p>
                 <p className="font-semibold text-[#172126]">{selectedBizObj?.name}</p>
@@ -699,7 +698,7 @@ if (existing?.fields && existing.fields.length > 0) {
               <div>
                 <p className="text-[#66757A]">Permit Clearance:</p>
                 <p className="font-semibold text-[#006B68]">
-                  {selectedApprObj?.name || selectedApprObj?.approval}
+                  {selectedApprObj?.name || selectedApprObj?.approval_name || selectedApprObj?.approval}
                 </p>
               </div>
               <div>
@@ -712,30 +711,25 @@ if (existing?.fields && existing.fields.length > 0) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-xs font-semibold text-[#172126] uppercase tracking-wider">
-                Submitted Field Declarations ({fields.length})
-              </h4>
-              <div className="border border-[#E2E8E7] rounded-lg divide-y divide-[#E2E8E7] text-xs">
-                {fields.map((f) => (
-                  <div key={f.id} className="p-3 flex justify-between gap-4">
-                    <span className="text-[#66757A]">{f.field_name}</span>
-                    <span className="font-semibold text-[#172126] text-right">
-                      {f.field_value || <span className="text-[#E05252] italic">Missing</span>}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Application Review Table with Provenance Badges */}
+            <ApplicationReviewTable fields={fields} />
 
+            {/* Documents List */}
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-[#172126] uppercase tracking-wider">
                 Attached Documents ({documents.length})
               </h4>
-              <div className="border border-[#E2E8E7] rounded-lg divide-y divide-[#E2E8E7] text-xs">
+              <div className="border border-[#E2E8E7] rounded-xl divide-y divide-[#E2E8E7] text-xs overflow-hidden">
                 {documents.map((d) => (
-                  <div key={d.id} className="p-3 flex items-center justify-between gap-4">
-                    <span className="font-medium text-[#172126]">{d.document_name}</span>
+                  <div key={d.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-[#F8FAF9]">
+                    <div>
+                      <span className="font-medium text-[#172126]">{d.document_name}</span>
+                      {d.file_hash && (
+                        <p className="text-[10px] text-[#66757A] font-mono mt-0.5">
+                          SHA-256: {d.file_hash.substring(0, 16)}...
+                        </p>
+                      )}
+                    </div>
                     <StatusBadge status={d.status} />
                   </div>
                 ))}
@@ -757,7 +751,7 @@ if (existing?.fields && existing.fields.length > 0) {
               loading={checkingCompliance}
               onClick={handleProceedToCompliance}
             >
-              Run Statutory Compliance Validation
+              Run Statutory Compliance Check
             </Button>
           </CardFooter>
         </Card>
@@ -767,56 +761,85 @@ if (existing?.fields && existing.fields.length > 0) {
       {currentStep === 5 && (
         <Card className="max-w-4xl mx-auto">
           <CardHeader>
-            <CardTitle>5. Statutory Compliance Evaluation</CardTitle>
+            <CardTitle>5. Statutory Compliance Check</CardTitle>
             <CardDescription>
-              Automated rules verification evaluating mandatory fields, documents, and regulatory checklists.
+              Authoritative validation enforcing complete mandatory disclosures and document attachments before submission.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             {complianceCheck && (
               <div className="space-y-4">
                 <div
-                  className={`p-4 rounded-lg border text-xs space-y-1.5 ${
-                    complianceCheck.validation?.valid
+                  className={`p-4 rounded-xl border text-xs space-y-1.5 ${
+                    complianceCheck.check?.ready_for_submission
                       ? 'bg-[#E8F6F1] border-[#C2EAD9] text-[#0C6148]'
                       : 'bg-[#FEF6E8] border-[#FDE2B2] text-[#B87707]'
                   }`}
                 >
                   <div className="flex items-center gap-2 font-bold text-sm">
-                    {complianceCheck.validation?.valid ? (
+                    {complianceCheck.check?.ready_for_submission ? (
                       <CheckCircle2 className="w-5 h-5 text-[#159A72]" />
                     ) : (
                       <AlertCircle className="w-5 h-5 text-[#F2A51A]" />
                     )}
                     <span>
-                      {complianceCheck.validation?.valid
-                        ? 'Application Validated: Ready for Submission'
-                        : 'Prerequisite Items Require Attention'}
+                      {complianceCheck.check?.ready_for_submission
+                        ? 'Application Validated: Ready for Authoritative Submission'
+                        : 'Prerequisite Statutory Items Missing or Invalid'}
                     </span>
                   </div>
                   <p className="leading-relaxed">
-                    {complianceCheck.validation?.message ||
+                    {complianceCheck.check?.summary ||
                       'All mandatory statutory declarations and uploaded certificates evaluated.'}
                   </p>
                 </div>
 
+                {/* Missing / Invalid Items List */}
+                {(!complianceCheck.check?.ready_for_submission && (
+                  <div className="p-4 rounded-xl bg-[#FFFBFB] border border-[#F8D7D7] text-xs space-y-2">
+                    <p className="font-bold text-[#C93D3D]">Items Requiring Attention:</p>
+                    {complianceCheck.check?.missing_fields?.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-[#172126]">Missing Fields: </span>
+                        <span className="text-[#C93D3D]">{complianceCheck.check.missing_fields.join(', ')}</span>
+                      </div>
+                    )}
+                    {complianceCheck.check?.invalid_fields?.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-[#172126]">Invalid Declarations: </span>
+                        <span className="text-[#C93D3D]">
+                          {complianceCheck.check.invalid_fields.map((f) => f.field || f).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {complianceCheck.check?.missing_documents?.length > 0 && (
+                      <div>
+                        <span className="font-semibold text-[#172126]">Missing Documents: </span>
+                        <span className="text-[#C93D3D]">{complianceCheck.check.missing_documents.join(', ')}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <div className="p-3.5 rounded-lg border border-[#E2E8E7] bg-white space-y-1">
-                    <p className="text-[#66757A]">Fields Status</p>
+                  <div className="p-3.5 rounded-xl border border-[#E2E8E7] bg-white space-y-1">
+                    <p className="text-[#66757A]">Statutory Fields</p>
                     <p className="font-bold text-[#172126] text-sm">
-                      {complianceCheck.check?.fields_status || 'Complete'}
+                      {complianceCheck.check?.validation_details?.completed_fields ?? 0} /{' '}
+                      {complianceCheck.check?.validation_details?.total_fields ?? 0} Valid
                     </p>
                   </div>
-                  <div className="p-3.5 rounded-lg border border-[#E2E8E7] bg-white space-y-1">
-                    <p className="text-[#66757A]">Documents Status</p>
+                  <div className="p-3.5 rounded-xl border border-[#E2E8E7] bg-white space-y-1">
+                    <p className="text-[#66757A]">Attached Documents</p>
                     <p className="font-bold text-[#172126] text-sm">
-                      {complianceCheck.check?.documents_status || 'Verified'}
+                      {complianceCheck.check?.validation_details?.verified_documents ?? 0} /{' '}
+                      {complianceCheck.check?.validation_details?.total_documents ?? 0} Verified
                     </p>
                   </div>
-                  <div className="p-3.5 rounded-lg border border-[#E2E8E7] bg-white space-y-1">
-                    <p className="text-[#66757A]">Readiness State</p>
+                  <div className="p-3.5 rounded-xl border border-[#E2E8E7] bg-white space-y-1">
+                    <p className="text-[#66757A]">Completion</p>
                     <p className="font-bold text-[#006B68] text-sm">
-                      {complianceCheck.status?.status || 'Ready'}
+                      {complianceCheck.check?.completion_percentage ?? 0}%
                     </p>
                   </div>
                 </div>
@@ -834,10 +857,10 @@ if (existing?.fields && existing.fields.length > 0) {
             <Button
               variant="primary"
               icon={Send}
-              loading={submittingApp}
-              onClick={handleSubmitFinal}
+              disabled={!complianceCheck?.check?.ready_for_submission}
+              onClick={handleOpenSubmissionModal}
             >
-              Formal Departmental Submission
+              Proceed to Authoritative Government Submission
             </Button>
           </CardFooter>
         </Card>
@@ -846,23 +869,25 @@ if (existing?.fields && existing.fields.length > 0) {
       {/* ================= STEP 6: SUBMISSION RECEIPT ================= */}
       {currentStep === 6 && (
         <Card className="max-w-2xl mx-auto text-center p-8 space-y-5">
-          <div className="w-14 h-14 rounded-xl bg-[#E8F6F1] text-[#159A72] flex items-center justify-center mx-auto shadow-2xs">
+          <div className="w-14 h-14 rounded-2xl bg-[#E8F6F1] text-[#159A72] flex items-center justify-center mx-auto shadow-xs">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <div className="space-y-1.5">
             <h2 className="text-xl font-bold text-[#172126]">
-              Clearance Application Submitted Successfully
+              Government Application Submitted Successfully
             </h2>
             <p className="text-xs sm:text-sm text-[#66757A] max-w-md mx-auto">
-              Your application dossier #{applicationId} has been registered with the regulatory compliance pipeline.
+              Your application dossier #{applicationId} has been filed with <strong>{selectedApprObj?.authority || 'the department'}</strong>.
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#F8FAF9] border border-[#E2E8E7] text-left text-xs space-y-2 max-w-md mx-auto">
+          <div className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E2E8E7] text-left text-xs space-y-2 max-w-md mx-auto">
             <div className="flex justify-between">
-              <span className="text-[#66757A]">Application Reference:</span>
-              <strong className="text-[#172126]">BIZC-{applicationId}-2026</strong>
+              <span className="text-[#66757A]">Government Application ID:</span>
+              <strong className="text-[#172126] font-mono">
+                {applicationData?.government_app_id || applicationData?.government_reference_no || 'Recorded'}
+              </strong>
             </div>
             <div className="flex justify-between">
               <span className="text-[#66757A]">Enterprise Entity:</span>
@@ -871,12 +896,18 @@ if (existing?.fields && existing.fields.length > 0) {
             <div className="flex justify-between">
               <span className="text-[#66757A]">Permit Clearance:</span>
               <span className="font-medium text-[#006B68]">
-                {selectedApprObj?.name || selectedApprObj?.approval}
+                {selectedApprObj?.name || selectedApprObj?.approval_name || selectedApprObj?.approval}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#66757A]">Filing Status:</span>
-              <StatusBadge status="Submitted" />
+              <span className="text-[#66757A]">Authoritative Department Status:</span>
+              <span className="font-semibold text-[#172126]">
+                {applicationData?.government_status || 'Under Review by Department'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#66757A]">Lifecycle Status:</span>
+              <StatusBadge status={applicationData?.status || 'Submitted'} />
             </div>
           </div>
 
@@ -889,14 +920,15 @@ if (existing?.fields && existing.fields.length > 0) {
             </Button>
             <Button
               variant="primary"
-              onClick={() => navigate('/approvals')}
+              onClick={() => navigate(`/applications/${applicationId}`)}
             >
-              View Approvals Pipeline
+              View Application Details & Track Status
             </Button>
           </div>
         </Card>
       )}
 
+      {/* Modals */}
       <BusinessModal
         isOpen={isBusinessModalOpen}
         onClose={() => setIsBusinessModalOpen(false)}
@@ -905,6 +937,16 @@ if (existing?.fields && existing.fields.length > 0) {
             setSelectedBusinessId(newBiz.business_id.toString());
           }
         }}
+      />
+
+      <GovernmentSubmissionModal
+        isOpen={isSubmissionModalOpen}
+        onClose={() => setIsSubmissionModalOpen(false)}
+        onSubmit={handleConfirmedSubmit}
+        submitting={submittingApp}
+        application={applicationData}
+        approval={selectedApprObj}
+        business={selectedBizObj}
       />
     </div>
   );

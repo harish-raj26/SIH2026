@@ -14,7 +14,7 @@ export const authService = {
       const defaultUser = {
         id: 'usr_default',
         name: 'Compliance Officer',
-        email: 'officer@bizclear.ai',
+        email: 'officer@byteforge.ai',
         role: USER_ROLES.APPLICANT,
         organization: 'Enterprise Regulatory Workspace',
         title: 'Regulatory Clearance Manager',

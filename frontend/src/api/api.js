@@ -14,8 +14,12 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('bizclear_auth_token');
+    const user = JSON.parse(localStorage.getItem('bizclear_user_data') || 'null');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (user?.role) {
+      config.headers['X-Role'] = user.role; 
     }
     return config;
   },
@@ -85,7 +89,7 @@ apiClient.interceptors.response.use(
       }
     } else if (error.request) {
       normalizedError.userTitle = 'Network Error';
-      normalizedError.message = `Cannot connect to BizClear AI backend at ${BASE_URL}. Ensure FastAPI is running.`;
+      normalizedError.message = `Cannot connect to Byte Forge backend at ${BASE_URL}. Ensure FastAPI is running.`;
     }
 
     console.error(`[API Error ${normalizedError.status}]:`, normalizedError);

@@ -37,5 +37,5 @@ Potential approval types:
 - Machinery Permission
 - Hazardous Process Permission
 
-This document is a fictional prototype source for testing the BizClear regulatory discovery system.
+This document is a fictional prototype source for testing the Byte Forge regulatory discovery system.
 It must not be treated as legal advice or an official statement of law.
